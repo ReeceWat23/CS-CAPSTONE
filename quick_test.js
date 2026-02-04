@@ -18,7 +18,7 @@ function test(name, fn) {
 }
 
 async function runTests() {
-    console.log('🧪 Running Quick Tests...\n');
+    console.log(' Running Quick Tests...\n');
     
     for (const { name, fn } of tests) {
         try {
