@@ -71,5 +71,15 @@ function get_endpoints() {
     return API_CONFIG.endpoints;
 }
 
+// function test_connection_endpoint ( endpoint, type ) {
+
+
+//     const response = fetch(API_CONFIG.baseUrl+endpoint, { method: type, headers: {
+//         'Authorization': `Bearer ${health_check_token}`,
+//         'Content-Type': 'application/json', // Adjust if needed
+//     }});
+//     return response.json();
+// }
+
 export { get_endpoints, API_CONFIG};
 

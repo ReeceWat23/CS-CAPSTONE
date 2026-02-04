@@ -1,0 +1,16 @@
+# Render deployment configuration
+services:
+  - type: web
+    name: realtor-referral-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    # Add your environment variables here
+    # - key: BUBBLE_API_KEY
+    #   sync: false  # Set this in Render dashboard
+

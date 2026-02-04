@@ -3,18 +3,21 @@
  * Connects to: https://realestatesimplified.xyz/version-test/api/1.1/wf
  */
 
-// ==================== Configuration ====================
 
-const API_CONFIG = {
-  baseUrl: 'https://realestatesimplified.xyz/version-test/api/1.1/wf',
-};
+import { API_CONFIG } from '../API_bubble/api_connect.js';
+// tested and working 
 
-// ==================== Utility Functions ====================
 
 
 export const signUp = async (req, res) => {
     try {
         // ensure that no user already exists with the email
+        // what we'll send back is a flag to the front end to procced with the sign up process or not
+        // what we can also attactch to this is the sign up with an agent logic 
+
+
+        // core post data we'll need 
+        // email, password, confirm_password, agent_id
         
         const userResponse = await fetch(`${API_CONFIG.baseUrl}/get_user`, {
             method: 'POST',
@@ -39,6 +42,8 @@ export const signUp = async (req, res) => {
         if (req.email.length < 3) {
             return res.status(400).json({ error: 'Email is too short' });
         }
+
+
 
         // Send the request to the database to create the user
         const createResponse = await fetch(`${API_CONFIG.baseUrl}/create_user`, {
@@ -92,20 +97,32 @@ export const login = async (req, res) => {
 }
 
 
-
 export const login_with_agent = async (req, res) => {
-   
-    // Login with agent-specific logic
-    // to make the log in logic a bit more seamless we can attactch a speacial token to the request --- relating back to the agent 
-    const loginResponse = await fetch(`${API_CONFIG.baseUrl}/log_in_with_agent`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            email: req.email,
-            password: req.password,
-            agentId: req.agentId,
-        }),
-    });
+    try {
+        // Login with agent-specific logic
+        // to make the log in logic a bit more seamless we can attactch a speacial token to the request --- relating back to the agent 
+        const loginResponse = await fetch(`${API_CONFIG.baseUrl}/log_in_with_agent`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: req.email,
+                password: req.password,
+                agentId: req.agentId,
+            }),
+        });
+
+        const result = await loginResponse.json();
+
+        if (!loginResponse.ok) {
+            return res.status(loginResponse.status).json({ 
+                error: result.error || 'Login with agent failed' 
+            });
+        }
+
+        return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+        return res.status(500).json({ error: error.message || 'Login with agent error occurred' });
+    }
 }
