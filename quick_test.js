@@ -1,10 +1,4 @@
-/**
- * Quick Test Script
- * Run with: node quick_test.js
- * 
- * This tests your functions without making actual API calls
- * Use test.js for full API testing
- */
+// this is a basic testing script to test out the api connection with bubble 
 
 import { signUp, login, login_with_agent } from './referral_logic.js';
 
@@ -18,7 +12,7 @@ function test(name, fn) {
 }
 
 async function runTests() {
-    console.log('🧪 Running Quick Tests...\n');
+    console.log(' Running Quick Tests...\n');
     
     for (const { name, fn } of tests) {
         try {
@@ -32,7 +26,7 @@ async function runTests() {
         }
     }
     
-    console.log(`\n📊 Results: ${passed} passed, ${failed} failed`);
+    console.log(`\n Results: ${passed} passed, ${failed} failed`);
 }
 
 // Mock request/response for testing
