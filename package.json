@@ -7,7 +7,13 @@
     "react-dom": "^19.2.4",
     "typescript": "^5.9.3"
   },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "jest": "^29.7.0"
+  },
   "scripts": {
-    "test": "node test.js"
+    "test": "node user_logic/test.js",
+    "test:jest": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:api": "NODE_OPTIONS=--experimental-vm-modules jest API_bubble/api.connect.test.js"
   }
 }
