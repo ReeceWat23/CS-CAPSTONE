@@ -39,35 +39,41 @@ app.get('/api', (req, res) => {
 });
 
 // Authentication Routes
-app.post('/api/auth/signup', async (req, res) => {
+app.post('/api/signup', async (req, res) => {
   // Extract data from request body
+  console.log(' Signup request:', req.body);
+
   const userData = {
     email: req.body.email,
     password: req.body.password,
     confirm_password: req.body.confirm_password,
-    agentId: req.body.agentId,
-    ...req.body, // Include any additional fields
+    agentId: req.body.agentId
   };
 
+  // signUp will send the response, so we just await it
   await signUp(userData, res);
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
+  console.log(' Login request:', req.body);
   const loginData = {
     email: req.body.email,
     password: req.body.password,
   };
 
+  // login will send the response
   await login(loginData, res);
 });
 
-app.post('/api/auth/login-with-agent', async (req, res) => {
+app.post('/api/login-with-agent', async (req, res) => {
+  console.log(' Login with agent request:', req.body);
   const loginData = {
     email: req.body.email,
     password: req.body.password,
     agentId: req.body.agentId,
   };
 
+  // login_with_agent will send the response
   await login_with_agent(loginData, res);
 });
 

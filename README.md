@@ -19,11 +19,11 @@ npm test
 
 The API will be available at `http://localhost:3001`
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Authentication
 
-- `POST /api/auth/signup` - Create a new user account
+- `POST /api/signup` - Create a new user account
   ```json
   {
     "email": "user@example.com",
@@ -33,7 +33,7 @@ The API will be available at `http://localhost:3001`
   }
   ```
 
-- `POST /api/auth/login` - Login user
+- `POST /api/login` - Login user
   ```json
   {
     "email": "user@example.com",
@@ -41,7 +41,7 @@ The API will be available at `http://localhost:3001`
   }
   ```
 
-- `POST /api/auth/login-with-agent` - Login with agent
+- `POST /api/login-with-agent` - Login with agent
   ```json
   {
     "email": "user@example.com",
@@ -68,7 +68,6 @@ The API will be available at `http://localhost:3001`
    - `PORT=10000` (or let Render assign it)
    - Add any other environment variables you need
 
-The API will be available at: `https://your-app-name.onrender.com`
 
 ## Frontend Integration
 
@@ -97,7 +96,7 @@ const login = async (email, password) => {
 };
 ```
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Run Jest tests
@@ -107,7 +106,7 @@ npm run test:jest
 npm test
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── server.js              # Main Express server
