@@ -52,6 +52,14 @@ const endpoints = {
             email: 'string',
         },
     },
+    get_referrals: { // based on the user id --- so for testing we can just use a demo one
+        endpoint: '/refs',
+        method: 'GET',
+        description: 'Get all referrals that a agent has',
+        parameters: {
+            user_id: 'string',
+        },
+    },
     delete_referral: {
         endpoint: '/delete_referral',
         method: 'DELETE',
