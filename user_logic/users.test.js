@@ -3,8 +3,10 @@
  * Run with: npm test
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+
+//import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { signUp, login, login_with_agent } from './users.js';
+
 
 // Mock fetch
 global.fetch = jest.fn();
