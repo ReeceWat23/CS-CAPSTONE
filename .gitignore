@@ -1,2 +1,5 @@
 #ignore npm
 node_modules/
+
+#ignore coverage tests
+coverage/

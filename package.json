@@ -6,13 +6,15 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "jest user_logic/users.test.js",
+    "test": "jest coverage.test.js",
+    "test:coverage": "jest --coverage coverage.test.js",
     "test:jest": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:api": "NODE_OPTIONS=--experimental-vm-modules jest API_bubble/api.connect.test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "yocto-queue": "^1.2.2"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
