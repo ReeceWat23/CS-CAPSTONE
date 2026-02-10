@@ -89,7 +89,7 @@ export const signUp = async (req, res) => {
 export const login = async (req, res) => {
     try {
         // Call Bubble API for login - bubble handles the authentication logic
-        const loginResponse = await fetch(`${API_CONFIG.baseUrl}/log_in`, {
+        const loginResponse = await fetch(`${API_CONFIG.baseUrl}/log_in`, { // there is no log in workflow yet 
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

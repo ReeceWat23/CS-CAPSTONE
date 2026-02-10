@@ -28,46 +28,104 @@ describe('signUp', () => {
   beforeEach(() => fetch.mockClear());
 
   it('returns 400 if passwords do not match', async () => {
-    fetch.mockResolvedValueOnce(mockFetch({})); // User doesn't exist
     const res = mockRes();
     await signUp(mockReq({ email: 'test@test.com', password: 'pass1', confirm_password: 'pass2' }), res);
-    //expect(res.responseData.error).toBe('Passwords do not match');
     expect(res.statusCode).toBe(400);
+    expect(res.responseData.success).toBe(false);
+    expect(res.responseData.shouldProceed).toBe(false);
+    expect(res.responseData.errors).toContain('Passwords do not match');
+    expect(res.responseData.message).toBe('Validation failed');
+    expect(fetch).not.toHaveBeenCalled(); // Should return early before API calls
   });
 
   it('returns 400 if email is too short', async () => {
-    fetch.mockResolvedValueOnce(mockFetch({})); // User doesn't exist
     const res = mockRes();
     await signUp(mockReq({ email: 'ab', password: 'pass', confirm_password: 'pass' }), res);
-    //expect(res.responseData.error).toBe('Email is too short');
     expect(res.statusCode).toBe(400);
+    expect(res.responseData.success).toBe(false);
+    expect(res.responseData.shouldProceed).toBe(false);
+    expect(res.responseData.errors).toContain('Email is too short');
+    expect(res.responseData.message).toBe('Validation failed');
+    expect(fetch).not.toHaveBeenCalled(); // Should return early before API calls
+  });
+
+  it('returns 400 if both email and password validations fail', async () => {
+    const res = mockRes();
+    await signUp(mockReq({ email: 'ab', password: 'pass1', confirm_password: 'pass2' }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.responseData.success).toBe(false);
+    expect(res.responseData.shouldProceed).toBe(false);
+    expect(res.responseData.errors).toContain('Email is too short');
+    expect(res.responseData.errors).toContain('Passwords do not match');
+    expect(res.responseData.message).toBe('Validation failed');
   });
 
   it('returns 400 if user already exists', async () => {
-    fetch.mockResolvedValueOnce(mockFetch({ email: 'existing@test.com' }));
+    fetch.mockResolvedValueOnce(mockFetch({ email: 'existing@test.com' })); // User exists
     const res = mockRes();
     await signUp(mockReq({ email: 'existing@test.com', password: 'pass', confirm_password: 'pass' }), res);
     expect(res.statusCode).toBe(400);
-    expect(res.responseData.error).toBe('User already exists');
+    expect(res.responseData.success).toBe(false);
+    expect(res.responseData.shouldProceed).toBe(false);
+    expect(res.responseData.errors).toContain('User already exists');
+    expect(res.responseData.message).toBe('User already exists');
+    expect(fetch).toHaveBeenCalledTimes(1); // Only get_user call
   });
 
-  //MARKER======================================================
-  it('creates user successfully', async () => {
+  it('creates user successfully when all validations pass', async () => {
     fetch.mockResolvedValueOnce(mockFetch({})); // User doesn't exist
-    fetch.mockResolvedValueOnce(mockFetch({ id: '123', email: 'new@test.com' }, true, 201));
-    //console.log(response.email);
+    fetch.mockResolvedValueOnce(mockFetch({ id: '123' }, true, 201)); // User created
     const res = mockRes();
     await signUp(mockReq({ email: 'new@test.com', password: 'pass', confirm_password: 'pass' }), res);
     expect(res.statusCode).toBe(201);
     expect(res.responseData.success).toBe(true);
+    expect(res.responseData.shouldProceed).toBe(true);
+    expect(res.responseData.message).toBe('User created successfully');
+    expect(fetch).toHaveBeenCalledTimes(2); // get_user and create_user
   });
 
-  it('handles API errors', async () => {
+  it('handles network errors', async () => {
     fetch.mockRejectedValueOnce(new Error('Network error'));
     const res = mockRes();
     await signUp(mockReq({ email: 'test@test.com', password: 'pass', confirm_password: 'pass' }), res);
     expect(res.statusCode).toBe(500);
-    expect(res.responseData.error).toBe('Network error');
+    expect(res.responseData.success).toBe(false);
+    expect(res.responseData.shouldProceed).toBe(false);
+    expect(res.responseData.errors).toContain('Network error');
+    expect(res.responseData.message).toBe('Internal server error');
+  });
+
+  it('calls get_user with correct email', async () => {
+    fetch.mockResolvedValueOnce(mockFetch({})); // User doesn't exist
+    fetch.mockResolvedValueOnce(mockFetch({}, true, 201)); // User created
+    const res = mockRes();
+    await signUp(mockReq({ email: 'test@test.com', password: 'pass', confirm_password: 'pass' }), res);
+    
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      'https://realestatesimplified.xyz/version-test/api/1.1/wf/get_user',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'test@test.com' }),
+      })
+    );
+  });
+
+  it('calls create_user with request data when validations pass', async () => {
+    const reqData = { email: 'new@test.com', password: 'pass', confirm_password: 'pass' };
+    fetch.mockResolvedValueOnce(mockFetch({})); // User doesn't exist
+    fetch.mockResolvedValueOnce(mockFetch({}, true, 201)); // User created
+    const res = mockRes();
+    await signUp(mockReq(reqData), res);
+    
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      'https://realestatesimplified.xyz/version-test/api/1.1/wf/create_user',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify(reqData),
+      })
+    );
   });
 });
 
@@ -80,6 +138,7 @@ describe('login', () => {
     await login(mockReq({ email: 'user@test.com', password: 'pass' }), res);
     expect(res.statusCode).toBe(200);
     expect(res.responseData.success).toBe(true);
+    expect(res.responseData.data).toBeDefined();
   });
 
   //////////////////////////////////////////////////
@@ -96,6 +155,7 @@ describe('login', () => {
     const res = mockRes();
     await login(mockReq({ email: 'user@test.com', password: 'pass' }), res);
     expect(res.statusCode).toBe(500);
+    expect(res.responseData.error).toBe('Network error');
   });
 });
 
@@ -104,7 +164,8 @@ describe('login_with_agent', () => {
 
   it('calls API with agentId', async () => {
     fetch.mockResolvedValueOnce(mockFetch({ success: true }));
-    await login_with_agent(mockReq({ email: 'agent@test.com', password: 'pass', agentId: 'agent123' }), mockRes());
+    const res = mockRes();
+    await login_with_agent(mockReq({ email: 'agent@test.com', password: 'pass', agentId: 'agent123' }), res);
     expect(fetch).toHaveBeenCalledWith(
       'https://realestatesimplified.xyz/version-test/api/1.1/wf/log_in_with_agent',
       expect.objectContaining({
@@ -112,6 +173,16 @@ describe('login_with_agent', () => {
         body: JSON.stringify({ email: 'agent@test.com', password: 'pass', agentId: 'agent123' }),
       })
     );
+    expect(res.statusCode).toBe(200);
+    expect(res.responseData.success).toBe(true);
+  });
+
+  it('returns error when login fails', async () => {
+    fetch.mockResolvedValueOnce(mockFetch({ error: 'Login failed' }, false, 401));
+    const res = mockRes();
+    await login_with_agent(mockReq({ email: 'agent@test.com', password: 'pass', agentId: 'agent123' }), res);
+    expect(res.statusCode).toBe(401);
+    expect(res.responseData.error).toBe('Login failed');
   });
 });
 
