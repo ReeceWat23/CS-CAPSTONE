@@ -2,6 +2,19 @@
 /// this is the file where we will handle all the logic for connecting to the bubble api
 /// this will also show what endpoints are available and how to use them we can update this as we go along and add more endpoints
 
+
+// test users referral list 
+// curl -X GET "https://realestatesimplified.xyz/version-test/api/1.1/wf/refs?user_id=1702150175837x449701921424581000" -H "Authorization: Bearer 571e360e38f0c11cded79162b849da13" -H "Content-Type: application/json"
+
+
+// test client id 1712407502153x355984856091353660
+// rill
+
+// test agent id 1702150175837x449701921424581000
+
+
+/// all creates will return a reference id that can be used to update the referral.
+
 const endpoints = {
 
     get_user: {
@@ -10,6 +23,14 @@ const endpoints = {
         description: 'Get a user by their email',
         parameters: {
             email: 'string',
+        },
+    },
+    get_all_users: {
+        endpoint: '/get_all_users',
+        method: 'GET',
+        description: 'Get all users',
+        parameters: {
+            user_id: 'string',
         },
     },
     create_user: {
@@ -46,7 +67,7 @@ const endpoints = {
     },
     update_referral: {
         endpoint: '/update_referral',
-        method: 'PUT',
+        method: 'POST',
         description: 'Update a referral',
         parameters: {
             email: 'string',
@@ -56,6 +77,14 @@ const endpoints = {
         endpoint: '/refs',
         method: 'GET',
         description: 'Get all referrals that a agent has',
+        parameters: {
+            user_id: 'string',
+        },
+    },
+    get_referras: { // get one referral by id
+        endpoint: '/get_ref',
+        method: 'GET',
+        description: 'Get a referral by id',
         parameters: {
             user_id: 'string',
         },

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import { create_referral } from './referrals.js';
+import { create_referral, update_referral } from './referrals.js';
 
 // Mock fetch
 global.fetch = jest.fn();
@@ -239,6 +239,294 @@ describe('create_referral', () => {
     expect(res.statusCode).toBe(500);
     expect(res.responseData.success).toBe(false);
     expect(res.responseData.message).toBe('Bubble API returned invalid response format');
+  });
+});
+
+describe('update_referral', () => {
+  beforeEach(() => fetch.mockClear());
+
+  // Helper to create mock request with params
+  const mockReqWithParams = (params, body) => ({
+    params: params || {},
+    body: body || {},
+    id: params?.id || body?.id,
+    ...body
+  });
+
+  const existingReferral = {
+    id: 'ref123',
+    name: "Bob's Plumbing",
+    desc: "Bob is a plumber who has been in the business for 10 years",
+    agent_score: 5,
+    agent_id: 'agent123',
+    link: 'https://bobsplumbing.com',
+    picture: null,
+    pricing_details: '$$',
+    type: 'plumber',
+    requests: 10
+  };
+
+  it('returns 404 if referral not found', async () => {
+    fetch.mockResolvedValueOnce(mockFetch({}, false, 404));
+    
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'nonexistent' }, {
+      confirm_name: "Bob's Plumbing",
+      name: "Updated Name"
+    }), res);
+
+    expect(res.statusCode).toBe(404);
+    expect(res.responseData.success).toBe(false);
+    expect(res.responseData.message).toBe('Referral not found');
+  });
+
+  it('returns 400 if confirm_name is missing', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
+    
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      name: "Updated Name"
+    }), res);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.responseData.success).toBe(false);
+    expect(res.responseData.message).toContain('Name does not match confirmation text');
+  });
+
+  it('returns 400 if confirm_name does not match existing referral name', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
+    
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Wrong Name",
+      name: "Updated Name"
+    }), res);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.responseData.success).toBe(false);
+    expect(res.responseData.message).toContain('Name does not match confirmation text');
+  });
+
+  it('returns 200 with no changes message when all values are the same', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
+    
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing",
+      name: "Bob's Plumbing",
+      desc: "Bob is a plumber who has been in the business for 10 years",
+      agent_score: 5
+    }), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.responseData.success).toBe(true);
+    expect(res.responseData.message).toContain('No changes detected');
+    expect(fetch).toHaveBeenCalledTimes(1); // Only get_ref, no update call
+  });
+
+  it('updates referral successfully when fields are changed', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200)); // get_ref
+    fetch.mockResolvedValueOnce(mockFetch({ 
+      id: 'ref123',
+      ...existingReferral,
+      name: "Updated Plumbing",
+      desc: "Updated description"
+    }, true, 200)); // update_ref
+
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing",
+      name: "Updated Plumbing",
+      desc: "Updated description"
+    }), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.responseData.success).toBe(true);
+    expect(res.responseData.message).toBe('Referral updated successfully');
+    expect(fetch).toHaveBeenCalledTimes(2); // get_ref and update_ref
+  });
+
+  it('only updates fields that are different from existing values', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200)); // get_ref
+    fetch.mockResolvedValueOnce(mockFetch({ 
+      ...existingReferral,
+      name: "Updated Name"
+    }, true, 200)); // update_ref
+
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing",
+      name: "Updated Name",
+      desc: "Bob is a plumber who has been in the business for 10 years", // Same as existing
+      agent_score: 5 // Same as existing
+    }), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.responseData.success).toBe(true);
+    
+    // Verify only changed fields are sent in update
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/update_ref/ref123'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          name: "Updated Name",
+          id: 'ref123'
+        }),
+      })
+    );
+  });
+
+  it('updates optional fields when provided and different', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200)); // get_ref
+    fetch.mockResolvedValueOnce(mockFetch({ 
+      ...existingReferral,
+      link: 'https://newlink.com',
+      pricing_details: '$$$'
+    }, true, 200)); // update_ref
+
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing",
+      link: 'https://newlink.com',
+      pricing_details: '$$$'
+    }), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.responseData.success).toBe(true);
+    
+    // Verify update includes only changed optional fields
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/update_ref/ref123'),
+      expect.objectContaining({
+        body: JSON.stringify({
+          link: 'https://newlink.com',
+          pricing_details: '$$$',
+          id: 'ref123'
+        }),
+      })
+    );
+  });
+
+  it('calls get_ref with correct id parameter', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
+    fetch.mockResolvedValueOnce(mockFetch({}, true, 200));
+
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing",
+      name: "Updated Name"
+    }), res);
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('/get_ref?id=ref123'),
+      expect.objectContaining({
+        method: 'GET',
+      })
+    );
+  });
+
+  it('calls update_ref with correct endpoint and changed data', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
+    fetch.mockResolvedValueOnce(mockFetch({ id: 'ref123' }, true, 200));
+
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing",
+      name: "New Name",
+      desc: "New Description"
+    }), res);
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/update_ref/ref123'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: "New Name",
+          desc: "New Description",
+          id: 'ref123'
+        }),
+      })
+    );
+  });
+
+  it('handles Bubble API update errors', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200)); // get_ref succeeds
+    fetch.mockResolvedValueOnce(mockFetch({ 
+      error: 'Update failed' 
+    }, false, 500)); // update_ref fails
+
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing",
+      name: "Updated Name"
+    }), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.responseData.success).toBe(false);
+    expect(res.responseData.message).toBe('Update failed');
+  });
+
+  it('handles network errors during get_ref', async () => {
+    fetch.mockRejectedValueOnce(new Error('Network error'));
+
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing"
+    }), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.responseData.success).toBe(false);
+    expect(res.responseData.message).toBe('Network error');
+  });
+
+  it('handles non-JSON responses from Bubble API', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (header) => header === 'content-type' ? 'text/html' : null
+      },
+      text: () => Promise.resolve('<html>Error</html>')
+    });
+
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing"
+    }), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.responseData.success).toBe(false);
+    expect(res.responseData.message).toBe('Bubble API returned invalid response format');
+  });
+
+  it('handles id from req.id when params not available', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
+    fetch.mockResolvedValueOnce(mockFetch({}, true, 200));
+
+    const req = {
+      id: 'ref123',
+      body: {
+        confirm_name: "Bob's Plumbing",
+        name: "Updated Name"
+      }
+    };
+
+    const res = mockRes();
+    await update_referral(req, res);
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('/get_ref?id=ref123'),
+      expect.anything()
+    );
   });
 });
 
