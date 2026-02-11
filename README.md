@@ -4,6 +4,10 @@ A referral search engine API for realtors & their clients.
 
 UI avalaible at https://realestatesimplified.xyz/version-test
 
+/search for the search UI
+  - https://realestatesimplified.xyz/version-test/search?c=1702150175837x449701921424581000 
+/agent-page for agent page 
+/landing for the langing page post log in
 
 
 ### Local Development
