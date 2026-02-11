@@ -96,7 +96,18 @@ const endpoints = {
         parameters: {
             email: 'string',
         },
-    },};
+    },
+    /*
+    get_notification: {
+        endpoint: 'notifications',
+        method: 'GET',
+        description: 'Get the notifications from the client',
+        parameters: {
+            user_id: 'string',
+        },
+    },
+    */
+};
 
 
 const API_CONFIG = {

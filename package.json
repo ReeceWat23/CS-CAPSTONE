@@ -6,19 +6,24 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node user_logic/test.js",
-    "test2": "node referrals/test.js",
+    "test": "jest coverage.test.js",
+    "test2": "node ./referrals/test.js",
+    "test:coverage": "jest --coverage coverage.test.js",
     "test:jest": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:api": "NODE_OPTIONS=--experimental-vm-modules jest API_bubble/api.connect.test.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "yocto-queue": "^1.2.2"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.0",
     "@jest/globals": "^29.7.0",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
+    "babel-jest": "^30.2.0",
     "jest": "^29.7.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

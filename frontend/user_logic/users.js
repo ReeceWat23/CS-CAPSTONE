@@ -102,14 +102,20 @@ export const login = async (req, res) => {
 
         const result = await loginResponse.json();
 
+        console.log(result);////////////////////
+         console.log(req);////////////////////
+
         if (!loginResponse.ok) {
+            console.log(loginResponse.status);////////////////////
             return res.status(loginResponse.status).json({ 
-                error: result.error || 'Invalid email or password' 
+                error: result.error
             });
         }
-
-        // Return the response for logs and frontend use
-        return res.status(200).json({ success: true, data: result });
+        else{
+            // Return the response for logs and frontend use
+            return res.status(200).json({ success: true, data: result });    
+        }
+        
     } catch (error) {
         return res.status(500).json({ error: error.message || 'Login error occurred' });
     }
