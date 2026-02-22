@@ -6,7 +6,23 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { search_referrals } from './basic_search.js';
 
-// Helper functions
+global.fetch = jest.fn();
+
+const mockReferrals = [
+  { id: 'ref1', name: "Bob's Plumbing", desc: "Bob is a plumber. Quality work.", agent_score: 5, type: 'plumber', requests: 10 },
+  { id: 'ref2', name: "Alice's Electrical Services", desc: "Professional electrical services", agent_score: 4, type: 'electrician', requests: 5 },
+  { id: 'ref3', name: "Mike's HVAC Solutions", desc: "Expert heating, ventilation, air conditioning. Emergency 24/7", agent_score: 5, type: 'hvac', requests: 15 },
+  { id: 'ref4', name: "Sarah's Roofing & Gutters", desc: "Quality roofing repairs and gutter installation", agent_score: 4, type: 'roofer', requests: 8 },
+  { id: 'ref5', name: "John's Handyman Services", desc: "General handyman. Quick response times", agent_score: 3, type: 'handyman', requests: 20 },
+  { id: 'ref6', name: "Elite Plumbing Co", desc: "Premium plumbing. Complex installations", agent_score: 5, type: 'plumber', requests: 12 },
+  { id: 'ref7', name: "Quick Fix Electrical", desc: "Fast electrical repairs. Same-day service", agent_score: 4, type: 'electrician', requests: 18 },
+  { id: 'ref8', name: "Green Energy Solar", desc: "Solar panel installation. Renewable energy. Go green", agent_score: 5, type: 'solar', requests: 6 },
+  { id: 'ref9', name: "Master Carpenter", desc: "Custom carpentry. Kitchen cabinets", agent_score: 4, type: 'carpenter', requests: 9 },
+  { id: 'ref10', name: "Bob's Home Improvement", desc: "Full-service. Small repairs to renovations", agent_score: 4, type: 'contractor', requests: 14 },
+  { id: 'ref11', name: "Pro Painters Plus", desc: "Interior and exterior painting. Professional finish", agent_score: 3, type: 'painter', requests: 11 },
+  { id: 'ref12', name: "Landscape Design Experts", desc: "Landscaping, lawn care, garden design", agent_score: 4, type: 'landscaper', requests: 7 },
+];
+
 const mockReq = (body) => ({ ...body, body });
 const mockRes = () => {
   const res = { statusCode: null, responseData: null };
@@ -16,10 +32,11 @@ const mockRes = () => {
 };
 
 describe('search_referrals', () => {
-  const agent_id = 'test_agent_123';
+  const agent_id = '1702150175837x449701921424581000';
 
   beforeEach(() => {
-    // Reset any mocks if needed
+    fetch.mockReset();
+    fetch.mockResolvedValue({ json: () => Promise.resolve({ response: { referrals: mockReferrals } }) });
   });
 
   // Validation tests
@@ -157,6 +174,8 @@ describe('search_referrals', () => {
               res.responseData.results[i + 1].score
             );
           }
+
+          console.log(res.responseData.results);
 
           // Each result should have required fields
           res.responseData.results.forEach(result => {
