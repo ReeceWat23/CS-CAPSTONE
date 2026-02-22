@@ -4,7 +4,7 @@
  */
 
 
-//import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { signUp, login, login_with_agent } from './frontend/user_logic/users.js';
 
 import { get_endpoints, API_CONFIG } from "./frontend/API_bubble/api_connect.js"

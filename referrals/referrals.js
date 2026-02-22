@@ -25,7 +25,7 @@
 //  https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/create_referral/initialize
 
 
-import { API_CONFIG } from '../API_bubble/api_connect.js';
+import { API_CONFIG } from '../frontend/API_bubble/api_connect.js';
 const health_check_token = "571e360e38f0c11cded79162b849da13";
 export const get_all_referrals = async (req, res) => {
 
@@ -85,7 +85,7 @@ export const create_referral = async (req, res) => {
         };
 
         // Create referral in Bubble database https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/create_referral/initialize
-        const createResponse = await fetch("https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/create_referral", {
+        const createResponse = await fetch(`${API_CONFIG.baseUrl}/create_referral`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -93,20 +93,18 @@ export const create_referral = async (req, res) => {
             body: JSON.stringify(referralData),
         });
 
-        // Check content type before parsing
-        // const contentType = createResponse.headers.get('content-type');
-        // let result;
-
-        // if (contentType && contentType.includes('application/json')) {
-        //     result = await createResponse.json();
-        // } else {
-        //     const textResponse = await createResponse.text();
-        //     console.error('Bubble API create_referral returned non-JSON:', textResponse.substring(0, 200));
-        //     return res.status(500).json({
-        //         success: false,
-        //         message: 'Bubble API returned invalid response format'
-        //     });
-        // }
+        const contentType = createResponse.headers.get('content-type');
+        let result;
+        if (contentType && contentType.includes('application/json')) {
+            result = await createResponse.json();
+        } else {
+            const textResponse = await createResponse.text();
+            console.error('Bubble API create_referral returned non-JSON:', textResponse?.substring(0, 200));
+            return res.status(500).json({
+                success: false,
+                message: 'Bubble API returned invalid response format'
+            });
+        }
 
         if (!createResponse.ok) {
             return res.status(createResponse.status).json({

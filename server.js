@@ -6,8 +6,9 @@
 import express from 'express';
 import cors from 'cors';
 import { signUp, login, login_with_agent } from './frontend/user_logic/users.js';
-// Import referral functions if they exist
-// import { createReferral, getReferrals, updateReferral, deleteReferral } from './referrals/referrals.js';
+import { search_referrals } from './Search/basic_search.js';
+import { create_message, update_message, delete_message } from './frontend/messages/messages.js';
+import { get_all_referrals, create_referral, update_referral, delete_referral } from './referrals/referrals.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -73,26 +74,38 @@ app.post('/api/login-with-agent', async (req, res) => {
     agentId: req.body.agentId,
   };
 
-  // login_with_agent will send the response
   await login_with_agent(loginData, res);
 });
 
-// Referral Routes (uncomment when referral functions are ready)
-// app.post('/api/referrals', async (req, res) => {
-//   await createReferral(req.body, res);
-// });
+// Search
+app.post('/api/search', async (req, res) => {
+  await search_referrals(req, res);
+});
 
-// app.get('/api/referrals', async (req, res) => {
-//   await getReferrals(req, res);
-// });
+// Messages
+app.post('/api/messages', async (req, res) => {
+  await create_message(req, res);
+});
+app.put('/api/messages/:id', async (req, res) => {
+  await update_message({ ...req.body, _id: req.params.id }, res);
+});
+app.delete('/api/messages/:id', async (req, res) => {
+  await delete_message({ ...req.body, id: req.params.id }, res);
+});
 
-// app.put('/api/referrals/:id', async (req, res) => {
-//   await updateReferral(req.params.id, req.body, res);
-// });
-
-// app.delete('/api/referrals/:id', async (req, res) => {
-//   await deleteReferral(req.params.id, res);
-// });
+// Referrals
+app.get('/api/referrals', async (req, res) => {
+  await get_all_referrals({ user_id: req.query.user_id }, res);
+});
+app.post('/api/referrals', async (req, res) => {
+  await create_referral(req, res);
+});
+app.put('/api/referrals/:id', async (req, res) => {
+  await update_referral(req, res);
+});
+app.delete('/api/referrals/:id', async (req, res) => {
+  await delete_referral({ ...req.body, id: req.params.id }, res);
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

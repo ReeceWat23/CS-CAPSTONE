@@ -82,7 +82,7 @@ async function runDemos() {
     }
 
     // Demo 4: Search for "quality work"
-    console.log('\n📝 Demo 4: Search for "quality work" (phrase search)');
+    console.log('\n Demo 4: Search for "quality work" (phrase search)');
     console.log('-'.repeat(60));
     const res4 = mockRes();
     await search_referrals(mockReq({
@@ -93,7 +93,7 @@ async function runDemos() {
     console.log(`Found ${res4.responseData?.total_matches || 0} matches`);
 
     // Demo 4b: Search for "Bob" (should find multiple Bob's)
-    console.log('\n📝 Demo 4b: Search for "Bob" (multiple matches)');
+    console.log('\n Demo 4b: Search for "Bob" (multiple matches)');
     console.log('-'.repeat(60));
     const res4b = mockRes();
     await search_referrals(mockReq({
@@ -109,7 +109,7 @@ async function runDemos() {
     }
 
     // Demo 5: Search for "hvac" or "heating"
-    console.log('\n📝 Demo 5: Search for "heating"');
+    console.log('\n Demo 5: Search for "heating"');
     console.log('-'.repeat(60));
     const res5 = mockRes();
     await search_referrals(mockReq({
@@ -120,7 +120,7 @@ async function runDemos() {
     console.log(`Found ${res5.responseData?.total_matches || 0} matches`);
 
     // Demo 6: Search for "contractor" or "renovation"
-    console.log('\n📝 Demo 6: Search for "renovation"');
+    console.log('\n Demo 6: Search for "renovation"');
     console.log('-'.repeat(60));
     const res6 = mockRes();
     await search_referrals(mockReq({
@@ -142,7 +142,7 @@ async function runDemos() {
     console.log(`Found ${res7.responseData?.total_matches || 0} matches`);
 
     // Demo 8: Search for "green" or "solar"
-    console.log('\n📝 Demo 8: Search for "solar"');
+    console.log('\n Demo 8: Search for "solar"');
     console.log('-'.repeat(60));
     const res8 = mockRes();
     await search_referrals(mockReq({
@@ -158,7 +158,7 @@ async function runDemos() {
     }
 
     // Demo 9: Missing agent_id (error case)
-    console.log('\n📝 Demo 9: Missing agent_id (error case)');
+    console.log('\n Demo 9: Missing agent_id (error case)');
     console.log('-'.repeat(60));
     const res9 = mockRes();
     await search_referrals(mockReq({
@@ -168,7 +168,7 @@ async function runDemos() {
     console.log(`Error: ${res9.responseData?.message}`);
 
     // Demo 10: Missing query (error case)
-    console.log('\n📝 Demo 10: Missing query (error case)');
+    console.log('\n Demo 10: Missing query (error case)');
     console.log('-'.repeat(60));
     const res10 = mockRes();
     await search_referrals(mockReq({
@@ -178,7 +178,7 @@ async function runDemos() {
     console.log(`Error: ${res10.responseData?.message}`);
 
     // Demo 11: Show all referral types available
-    console.log('\n📝 Demo 11: Summary - All referral types in mock data');
+    console.log('\n Demo 11: Summary - All referral types in mock data');
     console.log('-'.repeat(60));
     const res11 = mockRes();
     await search_referrals(mockReq({
@@ -192,12 +192,12 @@ async function runDemos() {
     }
 
     console.log('\n' + '='.repeat(60));
-    console.log('✅ Demo complete!');
+    console.log(' Demo complete!');
 }
 
 // Run demos
 runDemos().catch(error => {
-    console.error('❌ Demo error:', error);
+    console.error(' Demo error:', error);
     process.exit(1);
 });
 

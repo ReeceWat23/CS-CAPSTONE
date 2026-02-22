@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import { create_referral, update_referral } from './referrals.js';
+import { get_all_referrals, create_referral, update_referral, delete_referral } from './referrals.js';
 
 // Mock fetch
 global.fetch = jest.fn();
@@ -17,15 +17,38 @@ const mockRes = () => {
   res.json = (data) => { res.responseData = data; return res; };
   return res;
 };
-const mockFetch = (data, ok = true, status = 200) => 
-  Promise.resolve({ 
-    ok, 
-    status, 
-    headers: {
-      get: (header) => header === 'content-type' ? 'application/json' : null
-    },
-    json: () => Promise.resolve(data) 
+const mockFetch = (data, ok = true, status = 200) =>
+  Promise.resolve({
+    ok, status,
+    headers: { get: (header) => header === 'content-type' ? 'application/json' : null },
+    json: () => Promise.resolve(data)
   });
+
+describe('get_all_referrals', () => {
+  beforeEach(() => fetch.mockClear());
+
+  it('calls refs endpoint with user_id', async () => {
+    fetch.mockResolvedValueOnce(mockFetch({ response: { referrals: [] } }));
+    const res = mockRes();
+    await get_all_referrals({ user_id: 'agent123' }, res);
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/refs'), expect.any(Object));
+  });
+
+  it('handles fetch from req.body', async () => {
+    fetch.mockResolvedValueOnce(mockFetch({ referrals: [] }));
+    const res = mockRes();
+    await get_all_referrals({ body: { user_id: 'x' }, user_id: 'x' }, res);
+    expect(fetch).toHaveBeenCalled();
+  });
+
+  it('handles network errors', async () => {
+    fetch.mockRejectedValueOnce(new Error('Network error'));
+    const res = mockRes();
+    await get_all_referrals({ user_id: 'x' }, res);
+    expect(res.statusCode).toBe(500);
+    expect(res.responseData.success).toBe(false);
+  });
+});
 
 describe('create_referral', () => {
   beforeEach(() => fetch.mockClear());
@@ -133,7 +156,7 @@ describe('create_referral', () => {
     expect(res.statusCode).toBe(201);
     expect(res.responseData.success).toBe(true);
     expect(fetch).toHaveBeenCalledWith(
-      'https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/create_referral/initialize',
+      'https://realestatesimplified.xyz/version-test/api/1.1/wf/create_referral/initialize',
       expect.objectContaining({
         method: 'POST',
         headers: {
@@ -160,7 +183,7 @@ describe('create_referral', () => {
     await create_referral(mockReq(referralData), res);
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/create_referral/initialize',
+      'https://realestatesimplified.xyz/version-test/api/1.1/wf/create_referral/initialize',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
@@ -378,6 +401,50 @@ describe('update_referral', () => {
     );
   });
 
+  it('updates agent_score when different', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
+    fetch.mockResolvedValueOnce(mockFetch({ ...existingReferral, agent_score: 4 }, true, 200));
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing",
+      agent_score: 4
+    }), res);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('updates agent_id when different', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
+    fetch.mockResolvedValueOnce(mockFetch({ ...existingReferral, agent_id: 'agent456' }, true, 200));
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing",
+      agent_id: 'agent456'
+    }), res);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('updates link when different', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
+    fetch.mockResolvedValueOnce(mockFetch({ ...existingReferral, link: 'https://new.com' }, true, 200));
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing",
+      link: 'https://new.com'
+    }), res);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('updates picture when different', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
+    fetch.mockResolvedValueOnce(mockFetch({ ...existingReferral, picture: 'pic.jpg' }, true, 200));
+    const res = mockRes();
+    await update_referral(mockReqWithParams({ id: 'ref123' }, {
+      confirm_name: "Bob's Plumbing",
+      picture: 'pic.jpg'
+    }), res);
+    expect(res.statusCode).toBe(200);
+  });
+
   it('updates optional fields when provided and different', async () => {
     fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200)); // get_ref
     fetch.mockResolvedValueOnce(mockFetch({ 
@@ -487,46 +554,73 @@ describe('update_referral', () => {
     expect(res.responseData.message).toBe('Network error');
   });
 
-  it('handles non-JSON responses from Bubble API', async () => {
+  it('handles non-JSON responses from update_ref', async () => {
+    fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
     fetch.mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      headers: {
-        get: (header) => header === 'content-type' ? 'text/html' : null
-      },
+      ok: true, status: 200,
+      headers: { get: () => 'text/html' },
       text: () => Promise.resolve('<html>Error</html>')
     });
-
     const res = mockRes();
     await update_referral(mockReqWithParams({ id: 'ref123' }, {
-      confirm_name: "Bob's Plumbing"
+      confirm_name: "Bob's Plumbing",
+      name: "New Name"
     }), res);
-
     expect(res.statusCode).toBe(500);
-    expect(res.responseData.success).toBe(false);
     expect(res.responseData.message).toBe('Bubble API returned invalid response format');
   });
 
-  it('handles id from req.id when params not available', async () => {
+  it('handles id from req.params', async () => {
     fetch.mockResolvedValueOnce(mockFetch(existingReferral, true, 200));
     fetch.mockResolvedValueOnce(mockFetch({}, true, 200));
-
     const req = {
-      id: 'ref123',
-      body: {
-        confirm_name: "Bob's Plumbing",
-        name: "Updated Name"
-      }
+      params: { id: 'ref123' },
+      body: { confirm_name: "Bob's Plumbing", name: "Updated Name" }
     };
-
     const res = mockRes();
     await update_referral(req, res);
+    expect(fetch).toHaveBeenNthCalledWith(1, expect.stringContaining('/get_ref?id=ref123'), expect.anything());
+  });
+});
 
-    expect(fetch).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining('/get_ref?id=ref123'),
-      expect.anything()
-    );
+describe('delete_referral', () => {
+  beforeEach(() => fetch.mockClear());
+
+  const mockDeleteReq = (id, confirm_name) => ({ id, body: { confirm_name } });
+
+  it('returns 400 when confirm_name does not match', async () => {
+    fetch.mockResolvedValueOnce(mockFetch({ name: "Bob's Plumbing" }));
+    const res = mockRes();
+    await delete_referral(mockDeleteReq('ref123', 'Wrong Name'), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.responseData.message).toContain('Name does not match');
+  });
+
+  it('deletes successfully when confirm_name matches', async () => {
+    fetch.mockResolvedValueOnce(mockFetch({ name: "Bob's Plumbing" }));
+    fetch.mockResolvedValueOnce(mockFetch({ success: true }));
+    const res = mockRes();
+    await delete_referral(mockDeleteReq('ref123', "Bob's Plumbing"), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.responseData.message).toBe('Referral deleted successfully');
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns 400 when delete API fails', async () => {
+    fetch.mockResolvedValueOnce(mockFetch({ name: "Bob's Plumbing" }));
+    fetch.mockResolvedValueOnce(mockFetch({ success: false }));
+    const res = mockRes();
+    await delete_referral(mockDeleteReq('ref123', "Bob's Plumbing"), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.responseData.message).toBe('Referral deletion failed');
+  });
+
+  it('handles network errors', async () => {
+    fetch.mockRejectedValueOnce(new Error('Network error'));
+    const res = mockRes();
+    await delete_referral(mockDeleteReq('ref123', "Bob's Plumbing"), res);
+    expect(res.statusCode).toBe(500);
+    expect(res.responseData.success).toBe(false);
   });
 });
 

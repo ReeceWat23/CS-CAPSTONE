@@ -6,13 +6,14 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "jest coverage.test.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test2": "node ./referrals/test.js",
-    "test:coverage": "jest --coverage coverage.test.js",
+    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:jest": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:api": "NODE_OPTIONS=--experimental-vm-modules jest API_bubble/api.connect.test.js",
     "demo:search": "node Search/demo.js",
-    "test:messages": "NODE_OPTIONS=--experimental-vm-modules jest frontend/messages/messages.test.js"
+    "test:messages": "NODE_OPTIONS=--experimental-vm-modules jest frontend/messages/messages.test.js",
+    "test:search": "NODE_OPTIONS=--experimental-vm-modules jest Search/basic_search.test.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

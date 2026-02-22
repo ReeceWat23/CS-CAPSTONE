@@ -1,0 +1,255 @@
+/**
+ * Jest tests for basic_search.js
+ * Run with: npm run test:search or NODE_OPTIONS=--experimental-vm-modules jest Search/basic_search.test.js
+ */
+
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+import { search_referrals } from './basic_search.js';
+
+// Helper functions
+const mockReq = (body) => ({ ...body, body });
+const mockRes = () => {
+  const res = { statusCode: null, responseData: null };
+  res.status = (code) => { res.statusCode = code; return res; };
+  res.json = (data) => { res.responseData = data; return res; };
+  return res;
+};
+
+describe('search_referrals', () => {
+  const agent_id = 'test_agent_123';
+
+  beforeEach(() => {
+    // Reset any mocks if needed
+  });
+
+  // Validation tests
+  describe('Validation', () => {
+    it('returns 400 if agent_id is missing', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ query: 'plumber' }), res);
+      
+      expect(res.statusCode).toBe(400);
+      expect(res.responseData.success).toBe(false);
+      expect(res.responseData.message).toBe('Agent ID is required');
+    });
+
+    it('returns 400 if query is missing', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id }), res);
+      
+      expect(res.statusCode).toBe(400);
+      expect(res.responseData.success).toBe(false);
+      expect(res.responseData.message).toBe('Search query is required');
+    });
+
+    it('returns 400 if query is empty string', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id, query: '' }), res);
+      
+      expect(res.statusCode).toBe(400);
+      expect(res.responseData.success).toBe(false);
+      expect(res.responseData.message).toBe('Search query is required');
+    });
+
+    it('returns 400 if query is only whitespace', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id, query: '   ' }), res);
+      
+      expect(res.statusCode).toBe(400);
+      expect(res.responseData.success).toBe(false);
+      expect(res.responseData.message).toBe('Search query is required');
+    });
+  });
+
+  // Performance and query analysis tests
+  describe('Search Performance Analysis', () => {
+    const testQueries = [
+      { query: 'plumber', description: 'Single word - type match' },
+      { query: 'Bob', description: 'Single word - name match' },
+      { query: 'electrical', description: 'Single word - description match' },
+      { query: 'Bob\'s Plumbing', description: 'Exact phrase - name match' },
+      { query: 'hvac solutions', description: 'Two words - description match' },
+      { query: 'roofing gutters', description: 'Two words - name match' },
+      { query: 'premium services', description: 'Two words - description match' },
+      { query: 'green energy', description: 'Two words - name and description' },
+      { query: 'quick fix', description: 'Two words - name match' },
+      { query: 'xyz123nonexistent', description: 'No matches expected' }
+    ];
+
+    testQueries.forEach(({ query, description }) => {
+      it(`Query: "${query}" - ${description}`, async () => {
+        const startTime = performance.now();
+        const res = mockRes();
+        await search_referrals(mockReq({ agent_id, query }), res);
+        const endTime = performance.now();
+        const executionTime = endTime - startTime;
+
+        // Verify successful response
+        expect(res.statusCode).toBe(200);
+        expect(res.responseData.success).toBe(true);
+        expect(res.responseData.query).toBe(query);
+        expect(res.responseData.agent_id).toBe(agent_id);
+        expect(Array.isArray(res.responseData.results)).toBe(true);
+        expect(Array.isArray(res.responseData.referral_ids)).toBe(true);
+        expect(res.responseData.total_matches).toBe(res.responseData.results.length);
+
+        // Performance Analysis Output
+        console.log('\n' + '='.repeat(80));
+        console.log(`QUERY: "${query}"`);
+        console.log(`DESCRIPTION: ${description}`);
+        console.log('-'.repeat(80));
+        console.log(`EXECUTION TIME: ${executionTime.toFixed(2)}ms`);
+        console.log(`TOTAL MATCHES: ${res.responseData.total_matches}`);
+        console.log(`RESULTS RETURNED: ${res.responseData.results.length}`);
+        console.log('-'.repeat(80));
+
+        if (res.responseData.results.length > 0) {
+          console.log('TOP RESULTS:');
+          res.responseData.results.slice(0, 5).forEach((result, index) => {
+            console.log(`  ${index + 1}. ${result.name}`);
+            console.log(`     Score: ${result.score.toFixed(2)}`);
+            console.log(`     Match Fields: ${result.matchFields.join(', ')}`);
+            console.log(`     Type: ${result.type || 'N/A'}`);
+            console.log(`     Agent Score: ${result.agent_score || 'N/A'}`);
+            console.log(`     Pricing: ${result.pricing_details || 'N/A'}`);
+            console.log('');
+          });
+
+          // Performance metrics
+          const avgScore = res.responseData.results.reduce((sum, r) => sum + r.score, 0) / res.responseData.results.length;
+          const maxScore = Math.max(...res.responseData.results.map(r => r.score));
+          const minScore = Math.min(...res.responseData.results.map(r => r.score));
+          const scoreDistribution = {
+            high: res.responseData.results.filter(r => r.score >= 10).length,
+            medium: res.responseData.results.filter(r => r.score >= 5 && r.score < 10).length,
+            low: res.responseData.results.filter(r => r.score < 5).length
+          };
+
+          console.log('PERFORMANCE METRICS:');
+          console.log(`  Average Score: ${avgScore.toFixed(2)}`);
+          console.log(`  Max Score: ${maxScore.toFixed(2)}`);
+          console.log(`  Min Score: ${minScore.toFixed(2)}`);
+          console.log(`  Score Distribution:`);
+          console.log(`    High (≥10): ${scoreDistribution.high}`);
+          console.log(`    Medium (5-9): ${scoreDistribution.medium}`);
+          console.log(`    Low (<5): ${scoreDistribution.low}`);
+
+          // Match field analysis
+          const fieldFrequency = {};
+          res.responseData.results.forEach(result => {
+            result.matchFields.forEach(field => {
+              fieldFrequency[field] = (fieldFrequency[field] || 0) + 1;
+            });
+          });
+          console.log(`  Match Field Frequency:`, fieldFrequency);
+        } else {
+          console.log('NO RESULTS FOUND');
+        }
+
+        console.log('='.repeat(80) + '\n');
+
+        // Assertions
+        expect(res.responseData.results.length).toBeGreaterThanOrEqual(0);
+        if (res.responseData.results.length > 0) {
+          // Results should be sorted by score (descending)
+          for (let i = 0; i < res.responseData.results.length - 1; i++) {
+            expect(res.responseData.results[i].score).toBeGreaterThanOrEqual(
+              res.responseData.results[i + 1].score
+            );
+          }
+
+          // Each result should have required fields
+          res.responseData.results.forEach(result => {
+            expect(result).toHaveProperty('id');
+            expect(result).toHaveProperty('name');
+            expect(result).toHaveProperty('score');
+            expect(result).toHaveProperty('matchFields');
+            expect(Array.isArray(result.matchFields)).toBe(true);
+            expect(result.score).toBeGreaterThan(0);
+          });
+        }
+      });
+    });
+  });
+
+  // Specific search scenarios
+  describe('Search Scenarios', () => {
+    it('finds exact name matches with high score', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id, query: "Bob's Plumbing" }), res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.responseData.results.length).toBeGreaterThan(0);
+      
+      // Should find Bob's Plumbing with high score
+      const bobsPlumbing = res.responseData.results.find(r => r.name.includes("Bob's Plumbing"));
+      expect(bobsPlumbing).toBeDefined();
+      expect(bobsPlumbing.score).toBeGreaterThanOrEqual(10); // Exact phrase match
+    });
+
+    it('finds multiple matches for common terms', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id, query: 'plumber' }), res);
+
+      expect(res.statusCode).toBe(200);
+      // Should find multiple plumber-related results
+      const plumberResults = res.responseData.results.filter(r => 
+        r.type === 'plumber' || r.name.toLowerCase().includes('plumb') || 
+        r.desc.toLowerCase().includes('plumb')
+      );
+      expect(plumberResults.length).toBeGreaterThan(0);
+    });
+
+    it('handles case-insensitive searches', async () => {
+      const res1 = mockRes();
+      await search_referrals(mockReq({ agent_id, query: 'BOB' }), res1);
+
+      const res2 = mockRes();
+      await search_referrals(mockReq({ agent_id, query: 'bob' }), res2);
+
+      expect(res1.statusCode).toBe(200);
+      expect(res2.statusCode).toBe(200);
+      // Should return same results regardless of case
+      expect(res1.responseData.total_matches).toBe(res2.responseData.total_matches);
+    });
+
+    it('returns empty results for non-matching queries', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id, query: 'nonexistentxyz123' }), res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.responseData.success).toBe(true);
+      expect(res.responseData.total_matches).toBe(0);
+      expect(res.responseData.results).toEqual([]);
+      expect(res.responseData.referral_ids).toEqual([]);
+    });
+
+    it('includes all required fields in response', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id, query: 'plumber' }), res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.responseData).toHaveProperty('success');
+      expect(res.responseData).toHaveProperty('query');
+      expect(res.responseData).toHaveProperty('agent_id');
+      expect(res.responseData).toHaveProperty('total_matches');
+      expect(res.responseData).toHaveProperty('results');
+      expect(res.responseData).toHaveProperty('referral_ids');
+    });
+  });
+
+  // Error handling
+  describe('Error Handling', () => {
+    it('handles errors gracefully', async () => {
+      // Mock a scenario that might cause an error
+      const res = mockRes();
+      
+      // This should work fine, but if there's an error, it should be caught
+      await search_referrals(mockReq({ agent_id, query: 'test' }), res);
+      
+      // Should not throw, should return a response
+      expect(res.statusCode).toBeDefined();
+    });
+  });
+});
+
