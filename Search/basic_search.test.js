@@ -111,25 +111,25 @@ describe('search_referrals', () => {
         expect(res.responseData.total_matches).toBe(res.responseData.results.length);
 
         // Performance Analysis Output
-        console.log('\n' + '='.repeat(80));
-        console.log(`QUERY: "${query}"`);
-        console.log(`DESCRIPTION: ${description}`);
-        console.log('-'.repeat(80));
-        console.log(`EXECUTION TIME: ${executionTime.toFixed(2)}ms`);
-        console.log(`TOTAL MATCHES: ${res.responseData.total_matches}`);
-        console.log(`RESULTS RETURNED: ${res.responseData.results.length}`);
-        console.log('-'.repeat(80));
+        // console.log('\n' + '='.repeat(80));
+        // console.log(`QUERY: "${query}"`);
+        // console.log(`DESCRIPTION: ${description}`);
+        // console.log('-'.repeat(80));
+        // console.log(`EXECUTION TIME: ${executionTime.toFixed(2)}ms`);
+        // console.log(`TOTAL MATCHES: ${res.responseData.total_matches}`);
+        // console.log(`RESULTS RETURNED: ${res.responseData.results.length}`);
+        // console.log('-'.repeat(80));
 
         if (res.responseData.results.length > 0) {
-          console.log('TOP RESULTS:');
+          //console.log('TOP RESULTS:');
           res.responseData.results.slice(0, 5).forEach((result, index) => {
-            console.log(`  ${index + 1}. ${result.name}`);
-            console.log(`     Score: ${result.score.toFixed(2)}`);
-            console.log(`     Match Fields: ${result.matchFields.join(', ')}`);
-            console.log(`     Type: ${result.type || 'N/A'}`);
-            console.log(`     Agent Score: ${result.agent_score || 'N/A'}`);
-            console.log(`     Pricing: ${result.pricing_details || 'N/A'}`);
-            console.log('');
+            // console.log(`  ${index + 1}. ${result.name}`);
+            // console.log(`     Score: ${result.score.toFixed(2)}`);
+            // console.log(`     Match Fields: ${result.matchFields.join(', ')}`);
+            // console.log(`     Type: ${result.type || 'N/A'}`);
+            // console.log(`     Agent Score: ${result.agent_score || 'N/A'}`);
+            // console.log(`     Pricing: ${result.pricing_details || 'N/A'}`);
+            // console.log('');
           });
 
           // Performance metrics
@@ -142,14 +142,14 @@ describe('search_referrals', () => {
             low: res.responseData.results.filter(r => r.score < 5).length
           };
 
-          console.log('PERFORMANCE METRICS:');
-          console.log(`  Average Score: ${avgScore.toFixed(2)}`);
-          console.log(`  Max Score: ${maxScore.toFixed(2)}`);
-          console.log(`  Min Score: ${minScore.toFixed(2)}`);
-          console.log(`  Score Distribution:`);
-          console.log(`    High (≥10): ${scoreDistribution.high}`);
-          console.log(`    Medium (5-9): ${scoreDistribution.medium}`);
-          console.log(`    Low (<5): ${scoreDistribution.low}`);
+          // console.log('PERFORMANCE METRICS:');
+          // console.log(`  Average Score: ${avgScore.toFixed(2)}`);
+          // console.log(`  Max Score: ${maxScore.toFixed(2)}`);
+          // console.log(`  Min Score: ${minScore.toFixed(2)}`);
+          // console.log(`  Score Distribution:`);
+          // console.log(`    High (≥10): ${scoreDistribution.high}`);
+          // console.log(`    Medium (5-9): ${scoreDistribution.medium}`);
+          // console.log(`    Low (<5): ${scoreDistribution.low}`);
 
           // Match field analysis
           const fieldFrequency = {};
@@ -158,12 +158,12 @@ describe('search_referrals', () => {
               fieldFrequency[field] = (fieldFrequency[field] || 0) + 1;
             });
           });
-          console.log(`  Match Field Frequency:`, fieldFrequency);
+          //console.log(`  Match Field Frequency:`, fieldFrequency);
         } else {
-          console.log('NO RESULTS FOUND');
+          //console.log('NO RESULTS FOUND');
         }
 
-        console.log('='.repeat(80) + '\n');
+        //console.log('='.repeat(80) + '\n');
 
         // Assertions
         expect(res.responseData.results.length).toBeGreaterThanOrEqual(0);
@@ -175,7 +175,7 @@ describe('search_referrals', () => {
             );
           }
 
-          console.log(res.responseData.results);
+          //console.log(res.responseData.results);
 
           // Each result should have required fields
           res.responseData.results.forEach(result => {

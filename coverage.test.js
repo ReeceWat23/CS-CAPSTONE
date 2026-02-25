@@ -4,10 +4,11 @@
  */
 
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
+//import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { signUp, login, login_with_agent } from './frontend/user_logic/users.js';
 
 import { get_endpoints, API_CONFIG } from "./frontend/API_bubble/api_connect.js"
+
 
 
 // Mock fetch
@@ -203,6 +204,19 @@ describe('API_CONFIG', () => {
         expect(response.status).toBe(200);
     });
 
+    it('test get all users', async () => {
+            const response = await fetch(`${API_CONFIG.baseUrl}/get_all_users`, { 
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${health_check_token}`,
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            expect(response.status).toBe(200);
+            // const data = await response.json();
+            // console.log('Response data:', data.response.users[0]);
+        });
 
 });
 

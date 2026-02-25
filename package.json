@@ -6,9 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
-    "test2": "node ./referrals/test.js",
-    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test": "jest coverage.test.js ./referrals/referrals.test.js ./frontend/messages/messages.test.js ./search/basic_search.test.js",
+    "test:coverage": "jest --coverage coverage.test.js ./referrals/referrals.test.js ./frontend/messages/messages.test.js ./search/basic_search.test.js",
     "test:jest": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:api": "NODE_OPTIONS=--experimental-vm-modules jest API_bubble/api.connect.test.js",
     "demo:search": "node Search/demo.js",
