@@ -18,7 +18,7 @@ npm run dev
 npm test
 ```
 
-The API will be available at `http://localhost:3001`
+The API will be available at `http://localhost:3002` (set PORT env to override)
 
 ## API Endpoints
 

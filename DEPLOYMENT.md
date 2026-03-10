@@ -11,7 +11,7 @@ npm install
 ### Step 2: Test Locally
 ```bash
 npm start
-# Server runs on http://localhost:3001
+# Server runs on http://localhost:3002 (or PORT env)
 ```
 
 ### Step 3: Deploy to Render

@@ -32,7 +32,7 @@ export const search_referrals = async (req, res) => {
         // TODO: Fetch agent's referrals from Bubble API
         // For now, we'll prepare the structure without making the actual API call
         // When ready, uncomment this:
-        const referralsResponse = await fetch(`${API_CONFIG.baseUrl}/blacklist?user-id=${agent_id}`, {
+        const referralsResponse = await fetch(`${API_CONFIG.baseUrl}/refs?user_id=${agent_id}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -40,7 +40,7 @@ export const search_referrals = async (req, res) => {
             },
         });
         const referralsData = await referralsResponse.json();
-        let raw = referralsData.response?.['ref-list'] ?? referralsData['ref-list'] ?? referralsData.response?.referrals ?? referralsData.referrals ?? referralsData;
+        let raw = referralsData?.response?.['ref-list'] ?? referralsData?.['ref-list'] ?? referralsData?.response?.referrals ?? referralsData?.referrals;
         raw = Array.isArray(raw) ? raw : [];
 
         // Normalize API format (Name, _id, Agent score, type?) to expected (name, id, agent_score, type)

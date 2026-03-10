@@ -11,31 +11,47 @@ import { create_message, update_message, delete_message } from './frontend/messa
 import { get_all_referrals, create_referral, update_referral, delete_referral } from './referrals/referrals.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 // Middleware
 app.use(cors()); // Enable CORS for frontend
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'API is running' });
+// Root
+app.get('/', (req, res) => {
+  res.type('json').json({ ok: true, message: 'Realtor Referral API', docs: 'GET /api' });
 });
 
-// API Routes
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.type('json').json({ status: 'ok', message: 'API is running' });
+});
+
+// API info
 app.get('/api', (req, res) => {
-  res.json({ 
+  res.type('json').json({
     message: 'Realtor Referral API',
     version: '1.0.0',
     endpoints: {
       auth: {
-        'POST /api/auth/signup': 'Create a new user account',
-        'POST /api/auth/login': 'Login user',
-        'POST /api/auth/login-with-agent': 'Login user with agent',
+        'POST /api/signup': 'Create a new user account',
+        'POST /api/login': 'Login user',
+        'POST /api/login-with-agent': 'Login user with agent',
       },
-      // Add more endpoint groups as needed
-    }
+      search: { 'POST /api/search': 'Search referrals (body: agent_id, query)' },
+      messages: {
+        'POST /api/messages': 'Create message',
+        'PUT /api/messages/:id': 'Update message',
+        'DELETE /api/messages/:id': 'Delete message',
+      },
+      referrals: {
+        'GET /api/referrals?user_id=': 'List referrals',
+        'POST /api/referrals': 'Create referral',
+        'PUT /api/referrals/:id': 'Update referral',
+        'DELETE /api/referrals/:id': 'Delete referral',
+      },
+    },
   });
 });
 
