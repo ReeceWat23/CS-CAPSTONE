@@ -11,8 +11,10 @@ import { API_CONFIG } from '../frontend/API_bubble/api_connect.js';
 const health_check_token = "571e360e38f0c11cded79162b849da13";
 
 export const search_referrals = async (req, res) => {
+    console.log('[search] entered');
     try {
         const { agent_id, query } = req.body || req;
+        console.log('[search]', { agent_id, query });
 
         // Validate required parameters
         if (!agent_id) {
@@ -32,232 +34,102 @@ export const search_referrals = async (req, res) => {
         // TODO: Fetch agent's referrals from Bubble API
         // For now, we'll prepare the structure without making the actual API call
         // When ready, uncomment this:
-        const referralsResponse = await fetch(`${API_CONFIG.baseUrl}/refs?user_id=${agent_id}`, {
+        const refsUrl = `${API_CONFIG.baseUrl}/refs?user_id=${agent_id}`;
+        console.log('[search] fetch', refsUrl);
+        const referralsResponse = await fetch(refsUrl, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${health_check_token}`,
             },
         });
+        console.log('[search] refs status', referralsResponse.status);
         const referralsData = await referralsResponse.json();
-        let raw = referralsData?.response?.['ref-list'] ?? referralsData?.['ref-list'] ?? referralsData?.response?.referrals ?? referralsData?.referrals;
+        let raw = referralsData?.response?.refs ?? referralsData?.response?.['refs'] ?? referralsData?.['refs'] ?? referralsData?.response?.referrals ?? referralsData?.referrals;
         raw = Array.isArray(raw) ? raw : [];
+        console.log('[search] raw list length', raw.length);
+        if (raw[0]) console.log('[search] raw[0] keys', Object.keys(raw[0]));
 
-        // Normalize API format (Name, _id, Agent score, type?) to expected (name, id, agent_score, type)
-        const referrals = raw.map(r => ({
-            id: r._id ?? r.id,
-            name: r.Name ?? r.name,
-            desc: r.desc ?? '',
-            type: r['type?'] ?? r.type ?? '',
-            agent_score: r['Agent score'] ?? r.agent_score ?? 0,
-            requests: r.requests ?? 0,
-            link: r.link,
-            pricing_details: r['Pricing details '] ?? r['Pricing details'] ?? r.pricing_details
-        }));
+        // Normalize: support Bubble (Name, _id, Agent score, type?) and API (name, id, etc.)
+        const referrals = raw.map(r => {
+            const name = (r.Name ?? r.name ?? r.name_ ?? '').toString().trim();
+            const desc = (r.desc ?? r.Desc ?? r.description ?? '').toString().trim();
+            const type = (r['type?'] ?? r.type ?? '').toString().trim();
+            return {
+                id: r._id ?? r.id,
+                name,
+                desc,
+                type,
+                agent_score: Number(r['Agent score'] ?? r.agent_score ?? 0) || 0,
+                requests: Number(r.requests ?? 0) || 0,
+                link: r.link ?? null,
+                pricing_details: (r['Pricing details '] ?? r['Pricing details'] ?? r.pricing_details) ?? null
+            };
+        });
 
-        // Mock referrals data structure for testing (remove when ready to call API)
-        // const referrals = [
-        //     {
-        //         id: 'ref1',
-        //         name: "Bob's Plumbing",
-        //         desc: "Bob is a plumber who has been in the business for 10 years and is known for his quality work",
-        //         agent_score: 5,
-        //         agent_id: agent_id,
-        //         link: 'https://bobsplumbing.com',
-        //         pricing_details: '$$',
-        //         type: 'plumber',
-        //         requests: 10
-        //     },
-        //     {
-        //         id: 'ref2',
-        //         name: "Alice's Electrical Services",
-        //         desc: "Professional electrical services for residential and commercial properties",
-        //         agent_score: 4,
-        //         agent_id: agent_id,
-        //         pricing_details: '$$$',
-        //         type: 'electrician',
-        //         requests: 5
-        //     },
-        //     {
-        //         id: 'ref3',
-        //         name: "Mike's HVAC Solutions",
-        //         desc: "Expert heating, ventilation, and air conditioning services. Emergency repairs available 24/7",
-        //         agent_score: 5,
-        //         agent_id: agent_id,
-        //         link: 'https://mikeshvac.com',
-        //         pricing_details: '$$$',
-        //         type: 'hvac',
-        //         requests: 15
-        //     },
-        //     {
-        //         id: 'ref4',
-        //         name: "Sarah's Roofing & Gutters",
-        //         desc: "Quality roofing repairs and gutter installation. Licensed and insured contractors",
-        //         agent_score: 4,
-        //         agent_id: agent_id,
-        //         pricing_details: '$$',
-        //         type: 'roofer',
-        //         requests: 8
-        //     },
-        //     {
-        //         id: 'ref5',
-        //         name: "John's Handyman Services",
-        //         desc: "General handyman work including plumbing, electrical, and carpentry. Quick response times",
-        //         agent_score: 3,
-        //         agent_id: agent_id,
-        //         pricing_details: '$',
-        //         type: 'handyman',
-        //         requests: 20
-        //     },
-        //     {
-        //         id: 'ref6',
-        //         name: "Elite Plumbing Co",
-        //         desc: "Premium plumbing services with 15 years of experience. Specializing in complex installations",
-        //         agent_score: 5,
-        //         agent_id: agent_id,
-        //         link: 'https://eliteplumbing.com',
-        //         pricing_details: '$$$$',
-        //         type: 'plumber',
-        //         requests: 12
-        //     },
-        //     {
-        //         id: 'ref7',
-        //         name: "Quick Fix Electrical",
-        //         desc: "Fast and reliable electrical repairs. Same-day service available for urgent issues",
-        //         agent_score: 4,
-        //         agent_id: agent_id,
-        //         pricing_details: '$$',
-        //         type: 'electrician',
-        //         requests: 18
-        //     },
-        //     {
-        //         id: 'ref8',
-        //         name: "Green Energy Solar",
-        //         desc: "Solar panel installation and renewable energy solutions. Helping homes go green",
-        //         agent_score: 5,
-        //         agent_id: agent_id,
-        //         link: 'https://greenenergysolar.com',
-        //         pricing_details: '$$$$',
-        //         type: 'solar',
-        //         requests: 6
-        //     },
-        //     {
-        //         id: 'ref9',
-        //         name: "Master Carpenter",
-        //         desc: "Custom carpentry and woodworking. Kitchen cabinets, built-ins, and furniture",
-        //         agent_score: 4,
-        //         agent_id: agent_id,
-        //         pricing_details: '$$$',
-        //         type: 'carpenter',
-        //         requests: 9
-        //     },
-        //     {
-        //         id: 'ref10',
-        //         name: "Bob's Home Improvement",
-        //         desc: "Full-service home improvement contractor. From small repairs to major renovations",
-        //         agent_score: 4,
-        //         agent_id: agent_id,
-        //         pricing_details: '$$',
-        //         type: 'contractor',
-        //         requests: 14
-        //     },
-        //     {
-        //         id: 'ref11',
-        //         name: "Pro Painters Plus",
-        //         desc: "Interior and exterior painting services. Professional finish guaranteed",
-        //         agent_score: 3,
-        //         agent_id: agent_id,
-        //         pricing_details: '$$',
-        //         type: 'painter',
-        //         requests: 11
-        //     },
-        //     {
-        //         id: 'ref12',
-        //         name: "Landscape Design Experts",
-        //         desc: "Landscaping, lawn care, and garden design. Creating beautiful outdoor spaces",
-        //         agent_score: 4,
-        //         agent_id: agent_id,
-        //         pricing_details: '$$$',
-        //         type: 'landscaper',
-        //         requests: 7
-        //     }
-        // ];
-
-        // Perform search on referrals
+        // Search: phrase + word match in name/desc/type, then boost by agent_score and requests
         const searchQuery = query.toLowerCase().trim();
-        const searchTerms = searchQuery.split(/\s+/); // Split into individual words
+        const searchTerms = searchQuery.split(/\s+/).filter(Boolean);
 
         const matches = referrals
             .map(referral => {
                 let score = 0;
                 const matchFields = [];
-
-                // Search in name (highest weight)
                 const nameLower = (referral.name || '').toLowerCase();
-                if (nameLower.includes(searchQuery)) {
-                    score += 10; // Exact phrase match
-                    matchFields.push('name');
-                } else {
-                    // Check for individual word matches in name
-                    const nameMatches = searchTerms.filter(term => nameLower.includes(term));
-                    if (nameMatches.length > 0) {
-                        score += nameMatches.length * 5;
-                        matchFields.push('name');
-                    }
-                }
-
-                // Search in description (medium weight)
                 const descLower = (referral.desc || '').toLowerCase();
-                if (descLower.includes(searchQuery)) {
-                    score += 5; // Exact phrase match
-                    matchFields.push('desc');
-                } else {
-                    // Check for individual word matches in description
-                    const descMatches = searchTerms.filter(term => descLower.includes(term));
-                    if (descMatches.length > 0) {
-                        score += descMatches.length * 2;
-                        matchFields.push('desc');
-                    }
+                const typeLower = (referral.type || '').toLowerCase();
+
+                if (searchQuery && nameLower.includes(searchQuery)) {
+                    score += 10;
+                    matchFields.push('name');
+                }
+                const nameWordHits = searchTerms.filter(t => t && nameLower.includes(t));
+                if (nameWordHits.length > 0) {
+                    score += nameWordHits.length * 5;
+                    if (!matchFields.includes('name')) matchFields.push('name');
                 }
 
-                // Search in type (medium weight)
-                const typeLower = (referral.type || '').toLowerCase();
-                if (typeLower.includes(searchQuery)) {
+                if (searchQuery && descLower.includes(searchQuery)) {
+                    score += 5;
+                    matchFields.push('desc');
+                }
+                const descWordHits = searchTerms.filter(t => t && descLower.includes(t));
+                if (descWordHits.length > 0) {
+                    score += descWordHits.length * 2;
+                    if (!matchFields.includes('desc')) matchFields.push('desc');
+                }
+
+                if (searchQuery && typeLower.includes(searchQuery)) {
                     score += 5;
                     matchFields.push('type');
-                } else {
-                    const typeMatches = searchTerms.filter(term => typeLower.includes(term));
-                    if (typeMatches.length > 0) {
-                        score += typeMatches.length * 3;
-                        matchFields.push('type');
-                    }
+                }
+                const typeWordHits = searchTerms.filter(t => t && typeLower.includes(t));
+                if (typeWordHits.length > 0) {
+                    score += typeWordHits.length * 3;
+                    if (!matchFields.includes('type')) matchFields.push('type');
                 }
 
-                // Boost score based on requests (popularity indicator) - only when there's a match
                 if (matchFields.length > 0) {
-                    score += Math.min((referral.requests || 0) * 0.1, 2); // Cap at 2 points
+                    score += Math.min((referral.requests || 0) * 0.1, 2);
+                    score += Math.min((referral.agent_score || 0) * 0.5, 2.5);
                 }
 
-                return {
-                    referral,
-                    score,
-                    matchFields
-                };
+                return { referral, score, matchFields };
             })
-            .filter(match => match.score > 0) // Only include referrals with matches
-            .sort((a, b) => b.score - a.score) // Sort by score descending
-            .map(match => ({
-                id: match.referral.id,
-                name: match.referral.name,
-                score: match.score,
-                matchFields: match.matchFields,
-                // Include additional info for frontend
-                desc: match.referral.desc,
-                type: match.referral.type,
-                agent_score: match.referral.agent_score,
-                pricing_details: match.referral.pricing_details
+            .filter(m => m.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .map(m => ({
+                id: m.referral.id,
+                name: m.referral.name,
+                score: m.score,
+                matchFields: m.matchFields,
+                desc: m.referral.desc,
+                type: m.referral.type,
+                agent_score: m.referral.agent_score,
+                pricing_details: m.referral.pricing_details
             }));
 
+        console.log('[search] matches', matches.length, 'query:', query);
         // Prepare return payload
         return res.status(200).json({
             success: true,
@@ -265,12 +137,11 @@ export const search_referrals = async (req, res) => {
             agent_id: agent_id,
             total_matches: matches.length,
             results: matches,
-            // Return just IDs for simple use case
             referral_ids: matches.map(m => m.id)
         });
 
     } catch (error) {
-        console.error('Error searching referrals:', error);
+        console.error('[search] error', error.message, error.stack);
         return res.status(500).json({
             success: false,
             message: error.message || "Internal server error"

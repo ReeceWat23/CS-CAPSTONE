@@ -95,6 +95,7 @@ app.post('/api/login-with-agent', async (req, res) => {
 
 // Search
 app.post('/api/search', async (req, res) => {
+  console.log('[server] POST /api/search', req.body?.agent_id, req.body?.query);
   await search_referrals(req, res);
 });
 
