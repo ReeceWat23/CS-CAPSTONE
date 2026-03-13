@@ -143,7 +143,8 @@ export const search_referrals = async (req, res) => {
 /** Handler: search over public list (query only). */
 export const guest_search = async (req, res) => {
     try {
-        const { query } = req.body || req;
+        // const { query } = req.body || req;
+        const { agent_id, query } = req.body || req;
         if (!query || !query.trim()) {
             return res.status(400).json({ success: false, message: "Search query is required" });
         }
