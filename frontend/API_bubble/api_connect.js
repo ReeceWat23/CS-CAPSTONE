@@ -97,6 +97,35 @@ const endpoints = {
             email: 'string',
         },
     },
+    basic_search: {
+        endpoint: '/basic_search',
+        method: 'POST',
+        description: 'Perfroms a basic search',
+        parameters: {
+            agent_id: 'string',
+            query: 'string',
+        },
+    },
+    guest_search: {
+        endpoint: '/basic_search',
+        method: 'POST',
+        description: 'Perfroms a guest search based on what referrals are public',
+        parameters: {
+            agent_id: 'string',
+            query: 'string',
+        },
+    },
+    fetch_analytics: {
+        endpoint: '/fetch_analytics',
+        method: 'POST',
+        description: 'Gets analytics for a specific referral or all analytics for a user',
+        parameters: {
+            user_id: 'string',
+            ref_id: 'string',
+        },
+    }
+
+    // fetch_analytics
     /*
     get_notification: {
         endpoint: 'notifications',
