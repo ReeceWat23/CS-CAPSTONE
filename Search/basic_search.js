@@ -104,8 +104,8 @@ export async function fetch_agent_referrals(agent_id) {
 }
 
 /** Fetch public referrals (guest list). Use your Bubble public_list endpoint. */
-export async function fetch_public_referrals() {
-    const url = `${API_CONFIG.baseUrl}/public_list`;
+export async function fetch_public_referrals(agent_id) {
+    const url = `${API_CONFIG.baseUrl}/public_list?agent_id=${agent_id}`;
     const res = await fetch(url, { method: 'GET', headers });
     const data = await res.json();
     return extractRefs(data);
@@ -147,8 +147,11 @@ export const guest_search = async (req, res) => {
         if (!query || !query.trim()) {
             return res.status(400).json({ success: false, message: "Search query is required" });
         }
+        if (!agent_id) {
+            return res.status(400).json({ success: false, message: "Agent ID is required" });
+        }
 
-        const raw = await fetch_public_referrals();
+        const raw = await fetch_public_referrals(agent_id);
         const referrals = normalize_referrals(raw);
         const matches = run_search(referrals, query);
 
