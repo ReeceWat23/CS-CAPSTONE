@@ -4,7 +4,14 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import { search_referrals } from './basic_search.js';
+import {
+  search_referrals,
+  guest_search,
+  normalize_referrals,
+  run_search,
+  fetch_agent_referrals,
+  fetch_public_referrals,
+} from './basic_search.js';
 
 global.fetch = jest.fn();
 
@@ -23,7 +30,10 @@ const mockReferrals = [
   { id: 'ref12', name: "Landscape Design Experts", desc: "Landscaping, lawn care, garden design", agent_score: 4, type: 'landscaper', requests: 7 },
 ];
 
-const mockReq = (body) => ({ ...body, body });
+/** API response shape used by extractRefs (response.refs or response.referrals) */
+const mockRefsResponse = () => ({ json: () => Promise.resolve({ response: { refs: mockReferrals } }) });
+
+const mockReq = (body) => ({ body });
 const mockRes = () => {
   const res = { statusCode: null, responseData: null };
   res.status = (code) => { res.statusCode = code; return res; };
@@ -31,12 +41,63 @@ const mockRes = () => {
   return res;
 };
 
+describe('normalize_referrals', () => {
+  it('returns empty array for non-array input', () => {
+    expect(normalize_referrals(null)).toEqual([]);
+    expect(normalize_referrals(undefined)).toEqual([]);
+    expect(normalize_referrals({})).toEqual([]);
+  });
+
+  it('normalizes Bubble-shaped objects (Name, _id, Agent score, type?)', () => {
+    const raw = [{ Name: 'Bob', _id: 'x1', 'Agent score': 5, 'type?': 'plumber', desc: 'Plumbing' }];
+    const out = normalize_referrals(raw);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatchObject({ id: 'x1', name: 'Bob', type: 'plumber', agent_score: 5, desc: 'Plumbing' });
+  });
+
+  it('accepts already-normalized shape (id, name, desc, type)', () => {
+    const raw = [{ id: 'r1', name: 'Alice', desc: 'Desc', type: 'electrician' }];
+    const out = normalize_referrals(raw);
+    expect(out[0]).toMatchObject({ id: 'r1', name: 'Alice', desc: 'Desc', type: 'electrician' });
+  });
+});
+
+describe('run_search', () => {
+  const refs = [
+    { id: '1', name: "Bob's Plumbing", desc: 'Plumber', type: 'plumber', agent_score: 5, requests: 10 },
+    { id: '2', name: 'Alice Electric', desc: 'Electrical', type: 'electrician', agent_score: 4, requests: 0 },
+  ];
+
+  it('returns empty array for empty query or no matches', () => {
+    expect(run_search(refs, '')).toEqual([]);
+    expect(run_search(refs, '   ')).toEqual([]);
+    expect(run_search(refs, 'nonexistentxyz')).toEqual([]);
+  });
+
+  it('returns matches sorted by score descending', () => {
+    const matches = run_search(refs, 'plumber');
+    expect(matches.length).toBeGreaterThan(0);
+    expect(matches[0]).toHaveProperty('id', '1');
+    expect(matches[0]).toHaveProperty('score');
+    expect(matches[0]).toHaveProperty('matchFields');
+    for (let i = 0; i < matches.length - 1; i++) {
+      expect(matches[i].score).toBeGreaterThanOrEqual(matches[i + 1].score);
+    }
+  });
+
+  it('includes matchFields and result shape', () => {
+    const matches = run_search(refs, 'Bob');
+    expect(matches[0].matchFields).toContain('name');
+    expect(matches[0]).toMatchObject({ name: "Bob's Plumbing", desc: 'Plumber', type: 'plumber' });
+  });
+});
+
 describe('search_referrals', () => {
   const agent_id = '1702150175837x449701921424581000';
 
   beforeEach(() => {
     fetch.mockReset();
-    fetch.mockResolvedValue({ json: () => Promise.resolve({ response: { referrals: mockReferrals } }) });
+    fetch.mockResolvedValue(mockRefsResponse());
   });
 
   // Validation tests
@@ -260,15 +321,60 @@ describe('search_referrals', () => {
   // Error handling
   describe('Error Handling', () => {
     it('handles errors gracefully', async () => {
-      // Mock a scenario that might cause an error
       const res = mockRes();
-      
-      // This should work fine, but if there's an error, it should be caught
       await search_referrals(mockReq({ agent_id, query: 'test' }), res);
-      
-      // Should not throw, should return a response
       expect(res.statusCode).toBeDefined();
     });
+  });
+});
+
+describe('guest_search', () => {
+  beforeEach(() => {
+    fetch.mockReset();
+    fetch.mockResolvedValue(mockRefsResponse());
+  });
+
+  it('returns 400 if query is missing or empty', async () => {
+    const res = mockRes();
+    await guest_search(mockReq({}), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.responseData.message).toContain('Search query');
+
+    const res2 = mockRes();
+    await guest_search(mockReq({ query: '   ' }), res2);
+    expect(res2.statusCode).toBe(400);
+  });
+
+  it('returns 200 with results from public list', async () => {
+    const res = mockRes();
+    await guest_search(mockReq({ query: 'plumber' }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.responseData.success).toBe(true);
+    expect(res.responseData.query).toBe('plumber');
+    expect(Array.isArray(res.responseData.results)).toBe(true);
+    expect(res.responseData.total_matches).toBe(res.responseData.results.length);
+  });
+});
+
+describe('fetch_agent_referrals / fetch_public_referrals', () => {
+  it('fetch_agent_referrals returns refs from response.refs', async () => {
+    fetch.mockResolvedValue(mockRefsResponse());
+    const refs = await fetch_agent_referrals('agent123');
+    expect(refs).toEqual(mockReferrals);
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/refs?user_id=agent123'),
+      expect.any(Object)
+    );
+  });
+
+  it('fetch_public_referrals returns refs from public_list', async () => {
+    fetch.mockResolvedValue(mockRefsResponse());
+    const refs = await fetch_public_referrals();
+    expect(refs).toEqual(mockReferrals);
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/public_list'),
+      expect.any(Object)
+    );
   });
 });
 
