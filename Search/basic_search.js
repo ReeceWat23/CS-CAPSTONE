@@ -106,8 +106,39 @@ export async function fetch_agent_referrals(agent_id) {
 /** Fetch public referrals (guest list). Use your Bubble public_list endpoint. */
 export async function fetch_public_referrals(agent_id) {
     const url = `${API_CONFIG.baseUrl}/public_list?agent_id=${agent_id}`;
-    const res = await fetch(url, { method: 'GET', headers });
-    const data = await res.json();
+    console.log('[guest_search] fetch_public_referrals', agent_id);
+
+    let res;
+    try {
+        res = await fetch(url, { method: 'GET', headers });
+    } catch (err) {
+        console.error('[guest_search] fetch failed', err.message);
+        throw new Error(`Public list unreachable: ${err.message}`);
+    }
+
+    console.log('[guest_search] public_list response', { status: res.status, ok: res.ok });
+
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error('[guest_search] public_list non-JSON', res.status, text?.substring(0, 200));
+        throw new Error(`Public list returned invalid response (${res.status})`);
+    }
+
+    let data;
+    try {
+        data = await res.json();
+    } catch (err) {
+        console.error('[guest_search] public_list JSON parse error', err.message);
+        throw new Error('Public list returned invalid JSON');
+    }
+
+    if (!res.ok) {
+        const errMsg = data?.error ?? data?.message ?? res.statusText ?? `HTTP ${res.status}`;
+        console.error('[guest_search] public_list error', res.status, errMsg);
+        throw new Error(errMsg);
+    }
+
     return extractRefs(data);
 }
 
@@ -152,7 +183,18 @@ export const guest_search = async (req, res) => {
             return res.status(400).json({ success: false, message: "Agent ID is required" });
         }
 
-        const raw = await fetch_public_referrals(agent_id);
+        let raw;
+        try {
+            raw = await fetch_public_referrals(agent_id);
+        } catch (err) {
+            console.error('[guest_search] fetch_public_referrals failed', err.message);
+            const status = err.message.includes('unreachable') ? 503 : 502;
+            return res.status(status).json({
+                success: false,
+                message: err.message || 'Public list unavailable',
+            });
+        }
+
         const referrals = normalize_referrals(raw);
         const matches = run_search(referrals, query);
 
