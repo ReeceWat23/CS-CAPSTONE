@@ -30,8 +30,15 @@ const mockReferrals = [
   { id: 'ref12', name: "Landscape Design Experts", desc: "Landscaping, lawn care, garden design", agent_score: 4, type: 'landscaper', requests: 7 },
 ];
 
-/** API response shape used by extractRefs (response.refs or response.referrals) */
-const mockRefsResponse = () => ({ json: () => Promise.resolve({ response: { refs: mockReferrals } }) });
+/** Minimal fetch Response mock that matches basic_search.js expectations */
+const mockRefsResponse = () => ({
+  ok: true,
+  status: 200,
+  headers: {
+    get: () => 'application/json',
+  },
+  json: () => Promise.resolve({ response: { refs: mockReferrals } }),
+});
 
 const mockReq = (body) => ({ body });
 const mockRes = () => {
@@ -329,6 +336,8 @@ describe('search_referrals', () => {
 });
 
 describe('guest_search', () => {
+  const agent_id = '1702150175837x449701921424581000';
+
   beforeEach(() => {
     fetch.mockReset();
     fetch.mockResolvedValue(mockRefsResponse());
@@ -336,23 +345,78 @@ describe('guest_search', () => {
 
   it('returns 400 if query is missing or empty', async () => {
     const res = mockRes();
-    await guest_search(mockReq({}), res);
+    await guest_search(mockReq({ agent_id }), res);
     expect(res.statusCode).toBe(400);
     expect(res.responseData.message).toContain('Search query');
 
     const res2 = mockRes();
-    await guest_search(mockReq({ query: '   ' }), res2);
+    await guest_search(mockReq({ agent_id, query: '   ' }), res2);
     expect(res2.statusCode).toBe(400);
   });
 
   it('returns 200 with results from public list', async () => {
     const res = mockRes();
-    await guest_search(mockReq({ query: 'plumber' }), res);
+    await guest_search(mockReq({ agent_id, query: 'plumber' }), res);
     expect(res.statusCode).toBe(200);
     expect(res.responseData.success).toBe(true);
     expect(res.responseData.query).toBe('plumber');
     expect(Array.isArray(res.responseData.results)).toBe(true);
     expect(res.responseData.total_matches).toBe(res.responseData.results.length);
+  });
+
+  it('returns 503 when public_list fetch fails (network/unreachable)', async () => {
+    fetch.mockRejectedValueOnce(new Error('Public list unreachable: socket hang up'));
+
+    const res = mockRes();
+    await guest_search(mockReq({ agent_id, query: 'plumber' }), res);
+    expect(res.statusCode).toBe(503);
+    expect(res.responseData.success).toBe(false);
+  });
+
+  it('returns 502 when public_list throws non-unreachable error', async () => {
+    fetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: false,
+        status: 500,
+        headers: { get: () => 'application/json' },
+        json: () => Promise.resolve({ error: 'bad things' }),
+      })
+    );
+
+    const res = mockRes();
+    await guest_search(mockReq({ agent_id, query: 'plumber' }), res);
+    expect(res.statusCode).toBe(502);
+    expect(res.responseData.success).toBe(false);
+  });
+
+  it('returns 502 when public_list response is non-JSON', async () => {
+    fetch.mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'text/html' },
+        text: () => Promise.resolve('<html>Error</html>'),
+      })
+    );
+
+    const res = mockRes();
+    await guest_search(mockReq({ agent_id, query: 'plumber' }), res);
+    expect(res.statusCode).toBe(502);
+    expect(res.responseData.success).toBe(false);
+  });
+
+  it('returns 502 when public_list JSON parse fails', async () => {
+    fetch.mockImplementationOnce(() => Promise.resolve({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.reject(new Error('bad json')),
+    }));
+
+    const res = mockRes();
+    await guest_search(mockReq({ agent_id, query: 'plumber' }), res);
+    expect(res.statusCode).toBe(502);
+    expect(res.responseData.success).toBe(false);
   });
 });
 
@@ -369,7 +433,7 @@ describe('fetch_agent_referrals / fetch_public_referrals', () => {
 
   it('fetch_public_referrals returns refs from public_list', async () => {
     fetch.mockResolvedValue(mockRefsResponse());
-    const refs = await fetch_public_referrals();
+    const refs = await fetch_public_referrals('agent123');
     expect(refs).toEqual(mockReferrals);
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('/public_list'),

@@ -131,6 +131,14 @@ app.delete('/api/referrals/:id', async (req, res) => {
   await delete_referral({ ...req.body, id: req.params.id }, res);
 });
 
+
+// Analytics right now we can just test the logging of analytics 
+
+app.post('/api/analytics', async (req, res) => {
+  await log_analytics(req, res);
+});
+
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);

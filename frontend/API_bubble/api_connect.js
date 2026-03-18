@@ -123,6 +123,25 @@ const endpoints = {
             user_id: 'string',
             ref_id: 'string',
         },
+    },
+    log_analytics: {
+        endpoint: '/log_analytics',
+        method: 'POST',
+        description: 'Logs analytics for a specific event on the platform, a user doing a search, clicking a referral etc',
+        parameters: {
+            actor_id: 'string',
+            ref_id: 'string',
+            ref_ids: 'array',
+            info: "String"
+        },
+    },
+    Delete_analytics: {
+        endpoint: '/delete_analytics',
+        method: 'POST',
+        description: 'for deleting a specific event on the platform',
+        parameters: {
+            id: "string"
+        },
     }
 
     // fetch_analytics
