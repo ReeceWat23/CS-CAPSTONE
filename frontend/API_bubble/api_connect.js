@@ -15,6 +15,20 @@
 
 /// all creates will return a reference id that can be used to update the referral.
 
+const BUBBLE_HEALTH_CHECK_TOKEN = process.env.BUBBLE_HEALTH_CHECK_TOKEN || '';
+
+if (!BUBBLE_HEALTH_CHECK_TOKEN) {
+    console.warn('[bubble] Missing BUBBLE_HEALTH_CHECK_TOKEN env var (Authorization will be empty).');
+}
+
+function bubble_auth_headers(extra = {}) {
+    return {
+        'Authorization': `Bearer ${BUBBLE_HEALTH_CHECK_TOKEN}`,
+        'Content-Type': 'application/json',
+        ...extra,
+    };
+}
+
 const endpoints = {
 
     get_user: {
@@ -155,6 +169,86 @@ const endpoints = {
         },
     },
     */
+   ,Create_branch: {
+        endpoint: '/create_branch',
+        method: 'POST',
+        description: 'creates a branch on RES',
+        parameters: {
+            owner_id: "string",
+            Branch_name: "string",
+            link: "string",
+
+            //optional params
+            // primary & secondary colors 
+            primary_color: "string",
+            secondary_color: "string",
+
+            //logo 
+            logo: "image",
+
+
+            //lists ( agents & referrals)
+            agents: "list of users",
+            refs: "list of referrals"
+        },
+    },
+
+    delete_branch: {
+        endpoint: '/delete_branch',
+        method: 'POST',
+        description: 'creates a branch on RES',
+        parameters: {
+            id: "string"
+
+        }
+    },
+
+    modify_branch_agents: {
+        endpoint: '/branch_agents',
+        method: 'POST',
+        description: 'Modify the list of agents in a branch --- set it as a new list or remove/ add one agent ',
+        parameters: {
+            id: "string",
+            agents: "list of Ids "
+
+        }
+    },
+
+    modify_branch_referrals: {
+        endpoint: '/branch_referrals',
+        method: 'POST',
+        description: 'Modify the list of agents in a branch --- set it as a new list or remove/ add one agent ',
+        parameters: {
+            id: "string",
+            agents: "list of Ids "
+
+        }
+    },
+
+    update_branch: {
+        endpoint: '/update_branch',
+        method: 'POST',
+        description: 'Updates a branch on RES ( mainly for basic informmation )  ',
+        parameters: {
+            owner_id: "string",
+            Branch_name: "string",
+            link: "string",
+
+            //optional params
+            // primary & secondary colors 
+            primary_color: "string",
+            secondary_color: "string",
+
+            //logo 
+            logo: "image",
+
+
+            //lists ( agents & referrals)
+            agents: "list of users",
+            refs: "list of referrals"
+        },
+    }
+    
 };
 
 
@@ -177,5 +271,5 @@ function get_endpoints() {
 //     return response.json();
 // }
 
-export { get_endpoints, API_CONFIG};
+export { get_endpoints, API_CONFIG, BUBBLE_HEALTH_CHECK_TOKEN, bubble_auth_headers };
 

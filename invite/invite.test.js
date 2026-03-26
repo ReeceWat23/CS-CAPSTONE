@@ -2,6 +2,9 @@
  * Jest tests for invite/invite.js (sendBranchInvite)
  */
 
+// run| node invite/invite_manual.js ./emails.csv    # uses CSV emails
+// 
+
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { sendBranchInvite } from './invite.js';
 

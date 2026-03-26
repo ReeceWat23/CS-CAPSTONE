@@ -4,9 +4,9 @@
  */
 
 import { delete_message } from '../frontend/messages/messages.js';
-import { API_CONFIG } from '../frontend/API_bubble/api_connect.js';
+import { API_CONFIG, BUBBLE_HEALTH_CHECK_TOKEN } from '../frontend/API_bubble/api_connect.js';
 
-const health_check_token = "571e360e38f0c11cded79162b849da13";
+const health_check_token = BUBBLE_HEALTH_CHECK_TOKEN;
 
 // Message IDs to test deletion
 const messageIds = [

@@ -1,4 +1,4 @@
-import { get_endpoints, API_CONFIG } from "./api_connect.js"
+import { get_endpoints, API_CONFIG, BUBBLE_HEALTH_CHECK_TOKEN } from "./api_connect.js"
 
 
 /// test cases
@@ -7,7 +7,7 @@ describe('API_CONFIG', () => {
             expect(get_endpoints()).toEqual(API_CONFIG.endpoints);
         });
 
-        const health_check_token = "571e360e38f0c11cded79162b849da13";
+    const health_check_token = BUBBLE_HEALTH_CHECK_TOKEN;
 
         it('test connectivity to the api', async () => {
             const response = await fetch (API_CONFIG.baseUrl+'/health', { method: 'GET',headers :{

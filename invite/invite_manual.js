@@ -1,5 +1,8 @@
 /**
  * invite_manual.js
+ * 
+ * run node invite/invite_manual.js                 # uses hard-coded emails
+
  *
  * Super basic manual runner for sendBranchInvite.
  *

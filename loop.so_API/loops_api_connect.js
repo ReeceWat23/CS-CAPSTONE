@@ -19,10 +19,13 @@ const API_CONFIG = {
   endpoints,
   headers: {
     'Content-Type': 'application/json',
-    // TODO: move to env var
-    Authorization: 'Bearer e50c9e60ef0106b0c4d72058d9cb32bc',
+    Authorization: `Bearer ${process.env.LOOPS_API_KEY || ''}`,
   },
 };
+
+if (!process.env.LOOPS_API_KEY) {
+  console.warn('[loops] Missing LOOPS_API_KEY env var (Authorization will be empty).');
+}
 
 function get_endpoints() {
   return API_CONFIG.endpoints;

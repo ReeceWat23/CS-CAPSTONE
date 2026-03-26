@@ -2,14 +2,9 @@
  * Basic Search – shared search logic; data from private (agent) or public (guest) lists.
  */
 
-import { API_CONFIG } from '../frontend/API_bubble/api_connect.js';
+import { API_CONFIG, bubble_auth_headers } from '../frontend/API_bubble/api_connect.js';
 
-const health_check_token = "571e360e38f0c11cded79162b849da13";
-
-const headers = {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${health_check_token}`,
-};
+const headers = bubble_auth_headers();
 
 /** Normalize API refs (Bubble: Name, _id, Agent score, type? etc.) to common shape */
 export function normalize_referrals(raw) {

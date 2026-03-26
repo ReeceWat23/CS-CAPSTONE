@@ -9,7 +9,7 @@
  * Then tweak `endpointUrl` and `payload` below as needed.
  */
 
-import { API_CONFIG } from './api_connect.js';
+import { API_CONFIG, bubble_auth_headers } from './api_connect.js';
 
 // Hard-coded endpoint URL – change this to the Bubble workflow you want to initialize.
 // Example: `${API_CONFIG.baseUrl}/create_analytics/initialize`
@@ -31,8 +31,6 @@ const payload = {
 
 };
 
-const health_check_token = '571e360e38f0c11cded79162b849da13';
-
 async function initializeEndpoint() {
   try {
     console.log('[init] POST', endpointUrl);
@@ -40,10 +38,7 @@ async function initializeEndpoint() {
 
     const res = await fetch(endpointUrl, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${health_check_token}`,
-        'Content-Type': 'application/json',
-      },
+      headers: bubble_auth_headers(),
       body: JSON.stringify(payload),
     });
 

@@ -34,8 +34,7 @@
 //  https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/create_message/initialize
 
 
-import { API_CONFIG } from '../API_bubble/api_connect.js';
-const health_check_token = "571e360e38f0c11cded79162b849da13";
+import { API_CONFIG, bubble_auth_headers } from '../API_bubble/api_connect.js';
 // export const get_all_messages = async (req, res) => {
 
 //     try {
@@ -92,10 +91,7 @@ export const create_message = async (req, res) => {
         const createResponse = await fetch("https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/create_message", {
             method: 'POST',
             
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${health_check_token}`,
-            },
+            headers: bubble_auth_headers(),
             body: JSON.stringify(referralData),
         });
 
@@ -150,10 +146,7 @@ export const update_message = async (req, res) => {
         // First, get the existing message to verify and compare
         const getMessageResponse = await fetch(`${API_CONFIG.baseUrl}/get_message?id=${id}`, {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${health_check_token}`,
-                'Content-Type': 'application/json',
-            },
+            headers: bubble_auth_headers(),
         });
 
         console.log( "seeing if this is getting to this point ", getMessageResponse);
@@ -226,10 +219,7 @@ export const update_message = async (req, res) => {
         // Update message in Bubble database (ID is in payload, not URL)
         const updateResponse = await fetch(`${API_CONFIG.baseUrl}/update_message`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${health_check_token}`,
-                'Content-Type': 'application/json'
-            },
+            headers: bubble_auth_headers(),
             body: JSON.stringify(updateData),
         });
 
@@ -280,10 +270,7 @@ export const delete_message = async (req, res) => {
         // find the message in the data base and confirm the name with the confimration delete text from the user
         const referral = await fetch(`${API_CONFIG.baseUrl}/get_message?id=${id}`, {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${health_check_token}`,
-                'Content-Type': 'application/json'
-            },
+            headers: bubble_auth_headers(),
         });
         const referralData = await referral.json();
 
@@ -297,10 +284,7 @@ export const delete_message = async (req, res) => {
 
             const deleteResponse = await fetch(`${API_CONFIG.baseUrl}/delete_message?id=${id}`, {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${health_check_token}`,
-                    'Content-Type': 'application/json',
-                }
+                headers: bubble_auth_headers(),
             });
 
             const deleteData = await deleteResponse.json();

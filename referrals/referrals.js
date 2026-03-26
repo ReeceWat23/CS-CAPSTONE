@@ -25,8 +25,7 @@
 //  https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/create_referral/initialize
 
 
-import { API_CONFIG } from '../frontend/API_bubble/api_connect.js';
-const health_check_token = "571e360e38f0c11cded79162b849da13";
+import { API_CONFIG, bubble_auth_headers } from '../frontend/API_bubble/api_connect.js';
 export const get_all_referrals = async (req, res) => {
 
     try {
@@ -274,10 +273,7 @@ export const delete_referral = async (req, res) => {
 
             const deleteResponse = await fetch(`${API_CONFIG.baseUrl}/delete_ref/${id}`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${health_check_token}`,
-                    'Content-Type': 'application/json',
-                },
+                headers: bubble_auth_headers(),
                 body: JSON.stringify({id}),
             });
             const deleteData = await deleteResponse.json();

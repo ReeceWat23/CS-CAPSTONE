@@ -9,8 +9,7 @@
 
 
 
-import { API_CONFIG } from '../frontend/API_bubble/api_connect.js';
-const health_check_token = "571e360e38f0c11cded79162b849da13";
+import { API_CONFIG, bubble_auth_headers } from '../frontend/API_bubble/api_connect.js';
 
 
 // this endpoint is fetch_analytics: {
@@ -33,10 +32,7 @@ const health_check_token = "571e360e38f0c11cded79162b849da13";
 
 // const TOP_CATEGORIES = ["Moving", "finance & legal", "Home improvement", "life & local fav", "unknown"];
 
-const headers = {
-    'Authorization': `Bearer ${health_check_token}`,
-    'Content-Type': 'application/json',
-};
+const headers = bubble_auth_headers();
 
 async function parseBubbleJson(res, label) {
     const contentType = res.headers?.get?.('content-type');
