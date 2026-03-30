@@ -8,6 +8,7 @@ import cors from 'cors';
 import { signUp, login, login_with_agent } from './frontend/user_logic/users.js';
 import { search_referrals } from './Search/basic_search.js';
 import { guest_search } from './Search/basic_search.js';
+import { branch_search } from './Search/basic_search.js';
 
 import { create_message, update_message, delete_message } from './frontend/messages/messages.js';
 import { get_all_referrals, create_referral, update_referral, delete_referral } from './referrals/referrals.js';
@@ -103,6 +104,11 @@ app.post('/api/search', async (req, res) => {
 
 app.post('/api/guest-search', async (req, res) => {
   console.log('[server] POST /api/guest-search', req.body?.agent_id, req.body?.query);
+  await guest_search(req, res);
+});
+
+app.post('/api/branch-search', async (req, res) => {
+  console.log('[server] POST /api/branch-search', req.body?.branch_id, req.body?.query);
   await guest_search(req, res);
 });
 

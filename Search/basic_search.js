@@ -98,6 +98,17 @@ export async function fetch_agent_referrals(agent_id) {
     return extractRefs(data);
 }
 
+/** Fetch public branhc for an agent 
+ * 
+ * by default all these branch referrals will only leverage public referrals 
+*/
+export async function fetch_branch_referrals(branch_id,owner_id) {
+    const url = `${API_CONFIG.baseUrl}/get_branch_refs?branch_id=${branch_id}&owner_id=${owner_id}`;
+    const res = await fetch(url, { method: 'GET', headers });
+    const data = await res.json();
+    return extractRefs(data);
+}
+
 /** Fetch public referrals (guest list). Use your Bubble public_list endpoint. */
 export async function fetch_public_referrals(agent_id) {
     const url = `${API_CONFIG.baseUrl}/public_list?agent_id=${agent_id}`;
@@ -187,6 +198,49 @@ export const guest_search = async (req, res) => {
             return res.status(status).json({
                 success: false,
                 message: err.message || 'Public list unavailable',
+            });
+        }
+
+        const referrals = normalize_referrals(raw);
+        const matches = run_search(referrals, query);
+
+        return res.status(200).json({
+            success: true,
+            query,
+            total_matches: matches.length,
+            results: matches,
+            referral_ids: matches.map(m => m.id),
+        });
+    } catch (error) {
+        console.error('[guest_search] error', error.message);
+        return res.status(500).json({ success: false, message: error.message || "Internal server error" });
+    }
+};
+
+
+
+///** Handler: to search the branch & it's referrals */
+export const branch_search = async (req, res) => {
+    try {
+        // const { query } = req.body || req; 
+        // thinking owner id can be optional but let's leave it in here just case 
+        const { branch_id,owner_id, query } = req.body || req;
+        if (!query || !query.trim()) {
+            return res.status(400).json({ success: false, message: "Search query is required" });
+        }
+        if (!branch_id) {
+            return res.status(400).json({ success: false, message: "Branch ID is required" });
+        }
+
+        let raw;
+        try {
+            raw = await fetch_branch_referrals(branch_id,owner_id);
+        } catch (err) {
+            console.error('[guest_search] fetch_branch_referrals failed', err.message);
+            const status = err.message.includes('unreachable') ? 503 : 502;
+            return res.status(status).json({
+                success: false,
+                message: err.message || 'Branch list unavailable',
             });
         }
 

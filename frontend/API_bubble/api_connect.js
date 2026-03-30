@@ -95,6 +95,16 @@ const endpoints = {
             user_id: 'string',
         },
     },
+    get_branch_refs: {
+        endpoint: "get_branch_refs",
+        method: "GET",
+        description: " Get all referrals that a branch has ",
+        parameters: {
+            branch_id: "string",
+            owner_id: "string"
+        }
+
+    },
     get_referras: { // get one referral by id
         endpoint: '/get_ref',
         method: 'GET',
@@ -198,7 +208,7 @@ const endpoints = {
         method: 'POST',
         description: 'creates a branch on RES',
         parameters: {
-            id: "string"
+            branch_id: "string"
 
         }
     },
@@ -209,7 +219,8 @@ const endpoints = {
         description: 'Modify the list of agents in a branch --- set it as a new list or remove/ add one agent ',
         parameters: {
             id: "string",
-            agents: "list of Ids "
+            agents: "list of Ids ",
+            add_or_delete: 0 // add gets a 1 flag delete gets a 0 flag and we'll delete that set from the list 
 
         }
     },
@@ -217,10 +228,11 @@ const endpoints = {
     modify_branch_referrals: {
         endpoint: '/branch_referrals',
         method: 'POST',
-        description: 'Modify the list of agents in a branch --- set it as a new list or remove/ add one agent ',
+        description: 'Modify the list of agents in a branch --- set it as a new list or remove/ add one referral ',
         parameters: {
             id: "string",
-            agents: "list of Ids "
+            refs: "list of Ids ",
+            add_or_delete: 0 // add gets a 1 flag delete gets a 0 flag and we'll delete that set from the list 
 
         }
     },

@@ -16,20 +16,34 @@ import { API_CONFIG, bubble_auth_headers } from './api_connect.js';
 
 // Trigger a request to (click to copy) 
 //  https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/log_analytics/initialize
-const endpointUrl = " https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/log_analytics/initialize";
+const endpointUrl = "https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/create_branch/initialize";
 
-
+// branches
+// Trigger a request to (click to copy) 
+//  https://rem-29188.bubbleapps.io/version-test/api/1.1/wf/create_branch/initialize
  
 
 // Hard-coded payload – change fields as needed per endpoint.
 const payload = {
-    "actor-ref-id": "1234",
-    "ref-id": "1234",
-    "privacy-id" : "9999",
-    "ref_ids": ["1234", "1234", "1234"],
-    "info": "searched for a refferal"
+  owner_id: "string",
+  Branch_name: "string",
+  link: "string",
 
+  //optional params
+  // primary & secondary colors 
+  primary_color: "string",
+  secondary_color: "string",
+
+  //logo 
+  logo: "image",
+
+
+  //lists ( agents & referrals)
+  agents: ["111","222"],
+  refs: ["111","222"]
 };
+
+
 
 async function initializeEndpoint() {
   try {
