@@ -11,6 +11,7 @@ import {
   run_search,
   fetch_agent_referrals,
   fetch_public_referrals,
+  branch_search,
 } from './basic_search.js';
 
 global.fetch = jest.fn();
@@ -442,3 +443,17 @@ describe('fetch_agent_referrals / fetch_public_referrals', () => {
   });
 });
 
+
+// Search the branch & it's referrals
+  describe('Branch Handler', () => {
+    it('should return 400 if query is missing', async () => {
+        const req = { body: { branch_id: '123' } };
+        const res = mockRes();
+
+        await branch_search(req, res);
+
+        expect(res.statusCode).toBe(400);
+        expect(res.responseData.success).toBe(false);
+        expect(res.responseData.message).toContain("Search query is required");
+    });
+  });
