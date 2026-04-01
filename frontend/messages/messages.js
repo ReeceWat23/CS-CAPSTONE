@@ -63,7 +63,14 @@ export const create_message = async (req, res) => {
         // Extract data from request
         const { sender_id, receiver_id, message, notification_id } = req.body || req;
 
-       
+        // Ensure actually have content other wise don't waste
+        if (typeof message === 'string' && message.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "a message cannot be empty"
+            });
+        }
+
         if ( !sender_id || !receiver_id || !message || !notification_id) {
             return res.status(400).json({
                 success: false,
@@ -71,13 +78,11 @@ export const create_message = async (req, res) => {
             });
         }
 
-        // Ensure actually have content other wise don't wast 
-        if (!message) {
-            return res.status(400).json({
-                success: false,
-                message: "a message cannot be empty"
-            });
-        }
+        
+       
+        
+
+        
 
         // Prepare referral data *Ids are created by bubble
         const referralData = {

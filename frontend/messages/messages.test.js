@@ -389,7 +389,7 @@ describe('update_message', () => {
   it('returns error when update API call fails', async () => {
     fetch.mockResolvedValueOnce(mockFetch(mockGetMessageResponse, true, 200));
     fetch.mockResolvedValueOnce(mockFetch(
-      { error: 'Update failed' },
+      { error: 'Failed to update message' },
       false,
       400
     ));
