@@ -5,6 +5,17 @@
 import { API_CONFIG, bubble_auth_headers } from '../frontend/API_bubble/api_connect.js';
 
 const headers = bubble_auth_headers();
+const ALLOWED_TYPE_TAGS = [
+    'Moving',
+    'finance & Legal',
+    'life & local fav',
+    'Home improvement',
+    'Businesses',
+    'Other',
+];
+const TYPE_TAG_LOOKUP = new Map(
+    ALLOWED_TYPE_TAGS.map(tag => [tag.toLowerCase(), tag]),
+);
 
 /** Normalize API refs (Bubble: Name, _id, Agent score, type? etc.) to common shape */
 export function normalize_referrals(raw) {
@@ -21,12 +32,51 @@ export function normalize_referrals(raw) {
     }));
 }
 
+function normalize_type_filter(typeFilter) {
+    if (Array.isArray(typeFilter)) {
+        return typeFilter
+            .map(t => (t ?? '').toString().trim().toLowerCase())
+            .filter(Boolean);
+    }
+    const single = (typeFilter ?? '').toString().trim().toLowerCase();
+    return single ? [single] : [];
+}
+
+function parse_type_filter(typeFilter) {
+    const normalized = normalize_type_filter(typeFilter);
+    const canonical = [];
+    const invalid = [];
+    for (const raw of normalized) {
+        const matched = TYPE_TAG_LOOKUP.get(raw);
+        if (matched) canonical.push(matched);
+        else invalid.push(raw);
+    }
+    return {
+        valid: invalid.length === 0,
+        canonical: [...new Set(canonical)],
+        invalid,
+    };
+}
+
+function type_filter_response_shape(typeFilterList) {
+    if (!typeFilterList || typeFilterList.length === 0) return null;
+    if (typeFilterList.length === 1) return typeFilterList[0];
+    return typeFilterList;
+}
+
 /** Pure search: score and rank referrals by query. Returns matches array. */
-export function run_search(referrals, query) {
+export function run_search(referrals, query, typeFilter = null) {
     const searchQuery = (query || '').toLowerCase().trim();
     const searchTerms = searchQuery.split(/\s+/).filter(Boolean);
+    const filteredTypes = normalize_type_filter(typeFilter);
+    const hasTypeFilter = filteredTypes.length > 0;
 
     return referrals
+        .filter(referral => {
+            if (!hasTypeFilter) return true;
+            const referralType = (referral.type || '').toString().trim().toLowerCase();
+            return filteredTypes.includes(referralType);
+        })
         .map(referral => {
             let score = 0;
             const matchFields = [];
@@ -151,22 +201,31 @@ export async function fetch_public_referrals(agent_id) {
 /** Handler: search over agent's private list (agent_id + query in body). */
 export const search_referrals = async (req, res) => {
     try {
-        const { agent_id, query } = req.body || req;
+        const { agent_id, query, type_filter, type } = req.body || req;
+        const searchTypeFilter = type_filter ?? type;
+        const parsedTypeFilter = parse_type_filter(searchTypeFilter);
         if (!agent_id) {
             return res.status(400).json({ success: false, message: "Agent ID is required" });
         }
         if (!query || !query.trim()) {
             return res.status(400).json({ success: false, message: "Search query is required" });
         }
+        if (!parsedTypeFilter.valid) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid type filter. Allowed values: ${ALLOWED_TYPE_TAGS.join(', ')}`,
+            });
+        }
 
         const raw = await fetch_agent_referrals(agent_id);
         const referrals = normalize_referrals(raw);
-        const matches = run_search(referrals, query);
+        const matches = run_search(referrals, query, parsedTypeFilter.canonical);
 
         return res.status(200).json({
             success: true,
             query,
             agent_id,
+            type_filter: type_filter_response_shape(parsedTypeFilter.canonical),
             total_matches: matches.length,
             results: matches,
             referral_ids: matches.map(m => m.id),
@@ -181,12 +240,20 @@ export const search_referrals = async (req, res) => {
 export const guest_search = async (req, res) => {
     try {
         // const { query } = req.body || req;
-        const { agent_id, query } = req.body || req;
+        const { agent_id, query, type_filter, type } = req.body || req;
+        const searchTypeFilter = type_filter ?? type;
+        const parsedTypeFilter = parse_type_filter(searchTypeFilter);
         if (!query || !query.trim()) {
             return res.status(400).json({ success: false, message: "Search query is required" });
         }
         if (!agent_id) {
             return res.status(400).json({ success: false, message: "Agent ID is required" });
+        }
+        if (!parsedTypeFilter.valid) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid type filter. Allowed values: ${ALLOWED_TYPE_TAGS.join(', ')}`,
+            });
         }
 
         let raw;
@@ -202,11 +269,12 @@ export const guest_search = async (req, res) => {
         }
 
         const referrals = normalize_referrals(raw);
-        const matches = run_search(referrals, query);
+        const matches = run_search(referrals, query, parsedTypeFilter.canonical);
 
         return res.status(200).json({
             success: true,
             query,
+            type_filter: type_filter_response_shape(parsedTypeFilter.canonical),
             total_matches: matches.length,
             results: matches,
             referral_ids: matches.map(m => m.id),
@@ -224,12 +292,20 @@ export const branch_search = async (req, res) => {
     try {
         // const { query } = req.body || req; 
         // thinking owner id can be optional but let's leave it in here just case 
-        const { branch_id,owner_id, query } = req.body || req;
+        const { branch_id,owner_id, query, type_filter, type } = req.body || req;
+        const searchTypeFilter = type_filter ?? type;
+        const parsedTypeFilter = parse_type_filter(searchTypeFilter);
         if (!query || !query.trim()) {
             return res.status(400).json({ success: false, message: "Search query is required" });
         }
         if (!branch_id) {
             return res.status(400).json({ success: false, message: "Branch ID is required" });
+        }
+        if (!parsedTypeFilter.valid) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid type filter. Allowed values: ${ALLOWED_TYPE_TAGS.join(', ')}`,
+            });
         }
 
         let raw;
@@ -245,11 +321,12 @@ export const branch_search = async (req, res) => {
         }
 
         const referrals = normalize_referrals(raw);
-        const matches = run_search(referrals, query);
+        const matches = run_search(referrals, query, parsedTypeFilter.canonical);
 
         return res.status(200).json({
             success: true,
             query,
+            type_filter: type_filter_response_shape(parsedTypeFilter.canonical),
             total_matches: matches.length,
             results: matches,
             referral_ids: matches.map(m => m.id),

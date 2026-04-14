@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import {
   search_referrals,
   guest_search,
+  branch_search,
   normalize_referrals,
   run_search,
   fetch_agent_referrals,
@@ -16,18 +17,18 @@ import {
 global.fetch = jest.fn();
 
 const mockReferrals = [
-  { id: 'ref1', name: "Bob's Plumbing", desc: "Bob is a plumber. Quality work.", agent_score: 5, type: 'plumber', requests: 10 },
-  { id: 'ref2', name: "Alice's Electrical Services", desc: "Professional electrical services", agent_score: 4, type: 'electrician', requests: 5 },
-  { id: 'ref3', name: "Mike's HVAC Solutions", desc: "Expert heating, ventilation, air conditioning. Emergency 24/7", agent_score: 5, type: 'hvac', requests: 15 },
-  { id: 'ref4', name: "Sarah's Roofing & Gutters", desc: "Quality roofing repairs and gutter installation", agent_score: 4, type: 'roofer', requests: 8 },
-  { id: 'ref5', name: "John's Handyman Services", desc: "General handyman. Quick response times", agent_score: 3, type: 'handyman', requests: 20 },
-  { id: 'ref6', name: "Elite Plumbing Co", desc: "Premium plumbing. Complex installations", agent_score: 5, type: 'plumber', requests: 12 },
-  { id: 'ref7', name: "Quick Fix Electrical", desc: "Fast electrical repairs. Same-day service", agent_score: 4, type: 'electrician', requests: 18 },
-  { id: 'ref8', name: "Green Energy Solar", desc: "Solar panel installation. Renewable energy. Go green", agent_score: 5, type: 'solar', requests: 6 },
-  { id: 'ref9', name: "Master Carpenter", desc: "Custom carpentry. Kitchen cabinets", agent_score: 4, type: 'carpenter', requests: 9 },
-  { id: 'ref10', name: "Bob's Home Improvement", desc: "Full-service. Small repairs to renovations", agent_score: 4, type: 'contractor', requests: 14 },
-  { id: 'ref11', name: "Pro Painters Plus", desc: "Interior and exterior painting. Professional finish", agent_score: 3, type: 'painter', requests: 11 },
-  { id: 'ref12', name: "Landscape Design Experts", desc: "Landscaping, lawn care, garden design", agent_score: 4, type: 'landscaper', requests: 7 },
+  { id: 'ref1', name: "Bob's Plumbing", desc: "Bob is a plumber. Quality work.", agent_score: 5, type: 'Home improvement', requests: 10 },
+  { id: 'ref2', name: "Alice's Electrical Services", desc: "Professional electrical services", agent_score: 4, type: 'Home improvement', requests: 5 },
+  { id: 'ref3', name: "Mike's HVAC Solutions", desc: "Expert heating, ventilation, air conditioning. Emergency 24/7", agent_score: 5, type: 'Home improvement', requests: 15 },
+  { id: 'ref4', name: "Sarah's Roofing & Gutters", desc: "Quality roofing repairs and gutter installation", agent_score: 4, type: 'Home improvement', requests: 8 },
+  { id: 'ref5', name: "John's Handyman Services", desc: "General handyman. Quick response times", agent_score: 3, type: 'Home improvement', requests: 20 },
+  { id: 'ref6', name: "Elite Plumbing Co", desc: "Premium plumbing. Complex installations", agent_score: 5, type: 'Home improvement', requests: 12 },
+  { id: 'ref7', name: "Quick Fix Electrical", desc: "Fast electrical repairs. Same-day service", agent_score: 4, type: 'Home improvement', requests: 18 },
+  { id: 'ref8', name: "Green Energy Solar", desc: "Solar panel installation. Renewable energy. Go green", agent_score: 5, type: 'Businesses', requests: 6 },
+  { id: 'ref9', name: "Master Carpenter", desc: "Custom carpentry. Kitchen cabinets", agent_score: 4, type: 'Home improvement', requests: 9 },
+  { id: 'ref10', name: "Bob's Home Improvement", desc: "Full-service. Small repairs to renovations", agent_score: 4, type: 'Home improvement', requests: 14 },
+  { id: 'ref11', name: "Pro Painters Plus", desc: "Interior and exterior painting. Professional finish", agent_score: 3, type: 'life & local fav', requests: 11 },
+  { id: 'ref12', name: "Landscape Design Experts", desc: "Landscaping, lawn care, garden design", agent_score: 4, type: 'Moving', requests: 7 },
 ];
 
 /** Minimal fetch Response mock that matches basic_search.js expectations */
@@ -96,6 +97,22 @@ describe('run_search', () => {
     const matches = run_search(refs, 'Bob');
     expect(matches[0].matchFields).toContain('name');
     expect(matches[0]).toMatchObject({ name: "Bob's Plumbing", desc: 'Plumber', type: 'plumber' });
+  });
+
+  it('applies type filter when provided as string', () => {
+    const matches = run_search(refs, 'e', 'electrician');
+    expect(matches.length).toBeGreaterThan(0);
+    expect(matches.every(m => m.type === 'electrician')).toBe(true);
+  });
+
+  it('applies type filter when provided as array (case-insensitive)', () => {
+    const matches = run_search(refs, 'e', [' PLUMBER ', 'electrician']);
+    expect(matches.length).toBeGreaterThan(0);
+    expect(matches.every(m => ['plumber', 'electrician'].includes(m.type))).toBe(true);
+  });
+
+  it('returns empty array when type filter excludes all matches', () => {
+    expect(run_search(refs, 'Bob', 'solar')).toEqual([]);
   });
 });
 
@@ -323,6 +340,34 @@ describe('search_referrals', () => {
       expect(res.responseData).toHaveProperty('results');
       expect(res.responseData).toHaveProperty('referral_ids');
     });
+
+    it('filters by type_filter for private search', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id, query: 'services', type_filter: 'home improvement' }), res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.responseData.type_filter).toBe('Home improvement');
+      expect(res.responseData.results.length).toBeGreaterThan(0);
+      expect(res.responseData.results.every(r => r.type === 'Home improvement')).toBe(true);
+    });
+
+    it('supports type alias when request uses type', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id, query: 'solar', type: 'businesses' }), res);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.responseData.type_filter).toBe('Businesses');
+      expect(res.responseData.results.every(r => r.type === 'Businesses')).toBe(true);
+    });
+
+    it('returns 400 for invalid type_filter values', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id, query: 'services', type_filter: 'electrician' }), res);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.responseData.success).toBe(false);
+      expect(res.responseData.message).toContain('Invalid type filter');
+    });
   });
 
   // Error handling
@@ -331,6 +376,13 @@ describe('search_referrals', () => {
       const res = mockRes();
       await search_referrals(mockReq({ agent_id, query: 'test' }), res);
       expect(res.statusCode).toBeDefined();
+    });
+
+    it('returns 500 from search_referrals catch block for unexpected query shape', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id, query: {} }), res);
+      expect(res.statusCode).toBe(500);
+      expect(res.responseData.success).toBe(false);
     });
   });
 });
@@ -354,6 +406,13 @@ describe('guest_search', () => {
     expect(res2.statusCode).toBe(400);
   });
 
+  it('returns 400 if agent_id is missing in guest_search', async () => {
+    const res = mockRes();
+    await guest_search(mockReq({ query: 'plumber' }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.responseData.message).toBe('Agent ID is required');
+  });
+
   it('returns 200 with results from public list', async () => {
     const res = mockRes();
     await guest_search(mockReq({ agent_id, query: 'plumber' }), res);
@@ -362,6 +421,21 @@ describe('guest_search', () => {
     expect(res.responseData.query).toBe('plumber');
     expect(Array.isArray(res.responseData.results)).toBe(true);
     expect(res.responseData.total_matches).toBe(res.responseData.results.length);
+  });
+
+  it('returns filtered guest results when type_filter is provided', async () => {
+    const res = mockRes();
+    await guest_search(mockReq({ agent_id, query: 'services', type_filter: 'home improvement' }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.responseData.type_filter).toBe('Home improvement');
+    expect(res.responseData.results.every(r => r.type === 'Home improvement')).toBe(true);
+  });
+
+  it('returns 400 for invalid guest type_filter values', async () => {
+    const res = mockRes();
+    await guest_search(mockReq({ agent_id, query: 'services', type_filter: 'electrician' }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.responseData.message).toContain('Invalid type filter');
   });
 
   it('returns 503 when public_list fetch fails (network/unreachable)', async () => {
@@ -418,6 +492,13 @@ describe('guest_search', () => {
     expect(res.statusCode).toBe(502);
     expect(res.responseData.success).toBe(false);
   });
+
+  it('returns 500 from guest_search catch block for unexpected query shape', async () => {
+    const res = mockRes();
+    await guest_search(mockReq({ agent_id, query: {} }), res);
+    expect(res.statusCode).toBe(500);
+    expect(res.responseData.success).toBe(false);
+  });
 });
 
 describe('fetch_agent_referrals / fetch_public_referrals', () => {
@@ -439,6 +520,61 @@ describe('fetch_agent_referrals / fetch_public_referrals', () => {
       expect.stringContaining('/public_list'),
       expect.any(Object)
     );
+  });
+});
+
+describe('branch_search', () => {
+  const branch_id = 'branch_1';
+  const owner_id = 'owner_1';
+
+  beforeEach(() => {
+    fetch.mockReset();
+    fetch.mockResolvedValue(mockRefsResponse());
+  });
+
+  it('returns 400 if query is missing', async () => {
+    const res = mockRes();
+    await branch_search(mockReq({ branch_id, owner_id }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.responseData.success).toBe(false);
+  });
+
+  it('returns 400 if branch_id is missing', async () => {
+    const res = mockRes();
+    await branch_search(mockReq({ owner_id, query: 'plumber' }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.responseData.message).toBe('Branch ID is required');
+  });
+
+  it('returns 200 and applies type_filter to branch results', async () => {
+    const res = mockRes();
+    await branch_search(mockReq({ branch_id, owner_id, query: 'services', type_filter: 'home improvement' }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.responseData.type_filter).toBe('Home improvement');
+    expect(res.responseData.results.length).toBeGreaterThan(0);
+    expect(res.responseData.results.every(r => r.type === 'Home improvement')).toBe(true);
+  });
+
+  it('returns 400 for invalid branch type_filter values', async () => {
+    const res = mockRes();
+    await branch_search(mockReq({ branch_id, owner_id, query: 'services', type_filter: 'electrician' }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.responseData.message).toContain('Invalid type filter');
+  });
+
+  it('returns 503 when branch refs fetch is unreachable', async () => {
+    fetch.mockRejectedValueOnce(new Error('branch list unreachable'));
+    const res = mockRes();
+    await branch_search(mockReq({ branch_id, owner_id, query: 'plumber' }), res);
+    expect(res.statusCode).toBe(503);
+    expect(res.responseData.success).toBe(false);
+  });
+
+  it('returns 500 from branch_search catch block for unexpected query shape', async () => {
+    const res = mockRes();
+    await branch_search(mockReq({ branch_id, owner_id, query: {} }), res);
+    expect(res.statusCode).toBe(500);
+    expect(res.responseData.success).toBe(false);
   });
 });
 
