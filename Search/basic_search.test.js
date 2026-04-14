@@ -12,6 +12,7 @@ import {
   run_search,
   fetch_agent_referrals,
   fetch_public_referrals,
+  branch_search,
 } from './basic_search.js';
 
 global.fetch = jest.fn();
