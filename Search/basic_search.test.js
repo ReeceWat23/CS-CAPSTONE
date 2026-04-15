@@ -12,7 +12,6 @@ import {
   run_search,
   fetch_agent_referrals,
   fetch_public_referrals,
-  branch_search,
 } from './basic_search.js';
 
 global.fetch = jest.fn();
@@ -97,23 +96,36 @@ describe('run_search', () => {
   it('includes matchFields and result shape', () => {
     const matches = run_search(refs, 'Bob');
     expect(matches[0].matchFields).toContain('name');
-    expect(matches[0]).toMatchObject({ name: "Bob's Plumbing", desc: 'Plumber', type: 'plumber' });
+    expect(matches[0]).toMatchObject({ name: "Bob's Plumbing", desc: 'Plumber', 'type?': 'plumber' });
   });
 
   it('applies type filter when provided as string', () => {
     const matches = run_search(refs, 'e', 'electrician');
     expect(matches.length).toBeGreaterThan(0);
-    expect(matches.every(m => m.type === 'electrician')).toBe(true);
+    expect(matches.every(m => m['type?'] === 'electrician')).toBe(true);
   });
 
   it('applies type filter when provided as array (case-insensitive)', () => {
     const matches = run_search(refs, 'e', [' PLUMBER ', 'electrician']);
     expect(matches.length).toBeGreaterThan(0);
-    expect(matches.every(m => ['plumber', 'electrician'].includes(m.type))).toBe(true);
+    expect(matches.every(m => ['plumber', 'electrician'].includes(m['type?']))).toBe(true);
   });
 
   it('returns empty array when type filter excludes all matches', () => {
     expect(run_search(refs, 'Bob', 'solar')).toEqual([]);
+  });
+
+  it('with type filter, keeps all rows in that category even when query matches no text', () => {
+    const tagged = [
+      { id: 'a', name: 'Foo', desc: 'x', type: 'Home improvement', agent_score: 3, requests: 0 },
+      { id: 'b', name: 'Bar', desc: 'y', type: 'Moving', agent_score: 5, requests: 0 },
+    ];
+    const matches = run_search(tagged, 'zzznomatchzzz', 'home improvement');
+    expect(matches).toHaveLength(1);
+    expect(matches[0].id).toBe('a');
+    expect(matches[0].score).toBe(0);
+    expect(matches[0].matchFields).toEqual([]);
+    expect(matches[0]['type?']).toBe('Home improvement');
   });
 });
 
@@ -269,6 +281,7 @@ describe('search_referrals', () => {
             expect(result).toHaveProperty('name');
             expect(result).toHaveProperty('score');
             expect(result).toHaveProperty('matchFields');
+            expect(result).toHaveProperty('type?');
             expect(Array.isArray(result.matchFields)).toBe(true);
             expect(result.score).toBeGreaterThan(0);
           });
@@ -298,8 +311,8 @@ describe('search_referrals', () => {
 
       expect(res.statusCode).toBe(200);
       // Should find multiple plumber-related results
-      const plumberResults = res.responseData.results.filter(r => 
-        r.type === 'plumber' || r.name.toLowerCase().includes('plumb') || 
+      const plumberResults = res.responseData.results.filter(r =>
+        r['type?'] === 'Home improvement' || r.name.toLowerCase().includes('plumb') ||
         r.desc.toLowerCase().includes('plumb')
       );
       expect(plumberResults.length).toBeGreaterThan(0);
@@ -342,14 +355,22 @@ describe('search_referrals', () => {
       expect(res.responseData).toHaveProperty('referral_ids');
     });
 
-    it('filters by type_filter for private search', async () => {
+    it('filters by Bubble type? for private search', async () => {
       const res = mockRes();
-      await search_referrals(mockReq({ agent_id, query: 'services', type_filter: 'home improvement' }), res);
+      await search_referrals(mockReq({ agent_id, query: 'services', 'type?': 'home improvement' }), res);
 
       expect(res.statusCode).toBe(200);
-      expect(res.responseData.type_filter).toBe('Home improvement');
+      expect(res.responseData['type?']).toBe('Home improvement');
       expect(res.responseData.results.length).toBeGreaterThan(0);
-      expect(res.responseData.results.every(r => r.type === 'Home improvement')).toBe(true);
+      expect(res.responseData.results.every(r => r['type?'] === 'Home improvement')).toBe(true);
+    });
+
+    it('still accepts legacy type_filter body key', async () => {
+      const res = mockRes();
+      await search_referrals(mockReq({ agent_id, query: 'services', type_filter: 'Moving' }), res);
+      expect(res.statusCode).toBe(200);
+      expect(res.responseData['type?']).toBe('Moving');
+      expect(res.responseData.results.every(r => r['type?'] === 'Moving')).toBe(true);
     });
 
     it('supports type alias when request uses type', async () => {
@@ -357,13 +378,13 @@ describe('search_referrals', () => {
       await search_referrals(mockReq({ agent_id, query: 'solar', type: 'businesses' }), res);
 
       expect(res.statusCode).toBe(200);
-      expect(res.responseData.type_filter).toBe('Businesses');
-      expect(res.responseData.results.every(r => r.type === 'Businesses')).toBe(true);
+      expect(res.responseData['type?']).toBe('Businesses');
+      expect(res.responseData.results.every(r => r['type?'] === 'Businesses')).toBe(true);
     });
 
-    it('returns 400 for invalid type_filter values', async () => {
+    it('returns 400 for invalid type? values', async () => {
       const res = mockRes();
-      await search_referrals(mockReq({ agent_id, query: 'services', type_filter: 'electrician' }), res);
+      await search_referrals(mockReq({ agent_id, query: 'services', 'type?': 'electrician' }), res);
 
       expect(res.statusCode).toBe(400);
       expect(res.responseData.success).toBe(false);
@@ -424,17 +445,17 @@ describe('guest_search', () => {
     expect(res.responseData.total_matches).toBe(res.responseData.results.length);
   });
 
-  it('returns filtered guest results when type_filter is provided', async () => {
+  it('returns filtered guest results when type? is provided', async () => {
     const res = mockRes();
-    await guest_search(mockReq({ agent_id, query: 'services', type_filter: 'home improvement' }), res);
+    await guest_search(mockReq({ agent_id, query: 'services', 'type?': 'home improvement' }), res);
     expect(res.statusCode).toBe(200);
-    expect(res.responseData.type_filter).toBe('Home improvement');
-    expect(res.responseData.results.every(r => r.type === 'Home improvement')).toBe(true);
+    expect(res.responseData['type?']).toBe('Home improvement');
+    expect(res.responseData.results.every(r => r['type?'] === 'Home improvement')).toBe(true);
   });
 
-  it('returns 400 for invalid guest type_filter values', async () => {
+  it('returns 400 for invalid guest type? values', async () => {
     const res = mockRes();
-    await guest_search(mockReq({ agent_id, query: 'services', type_filter: 'electrician' }), res);
+    await guest_search(mockReq({ agent_id, query: 'services', 'type?': 'electrician' }), res);
     expect(res.statusCode).toBe(400);
     expect(res.responseData.message).toContain('Invalid type filter');
   });
@@ -547,18 +568,18 @@ describe('branch_search', () => {
     expect(res.responseData.message).toBe('Branch ID is required');
   });
 
-  it('returns 200 and applies type_filter to branch results', async () => {
+  it('returns 200 and applies type? to branch results', async () => {
     const res = mockRes();
-    await branch_search(mockReq({ branch_id, owner_id, query: 'services', type_filter: 'home improvement' }), res);
+    await branch_search(mockReq({ branch_id, owner_id, query: 'services', 'type?': 'home improvement' }), res);
     expect(res.statusCode).toBe(200);
-    expect(res.responseData.type_filter).toBe('Home improvement');
+    expect(res.responseData['type?']).toBe('Home improvement');
     expect(res.responseData.results.length).toBeGreaterThan(0);
-    expect(res.responseData.results.every(r => r.type === 'Home improvement')).toBe(true);
+    expect(res.responseData.results.every(r => r['type?'] === 'Home improvement')).toBe(true);
   });
 
-  it('returns 400 for invalid branch type_filter values', async () => {
+  it('returns 400 for invalid branch type? values', async () => {
     const res = mockRes();
-    await branch_search(mockReq({ branch_id, owner_id, query: 'services', type_filter: 'electrician' }), res);
+    await branch_search(mockReq({ branch_id, owner_id, query: 'services', 'type?': 'electrician' }), res);
     expect(res.statusCode).toBe(400);
     expect(res.responseData.message).toContain('Invalid type filter');
   });

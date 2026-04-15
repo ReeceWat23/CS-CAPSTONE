@@ -64,7 +64,17 @@ function type_filter_response_shape(typeFilterList) {
     return typeFilterList;
 }
 
-/** Pure search: score and rank referrals by query. Returns matches array. */
+/** Bubble field name for category filter; also accepts legacy `type_filter` / `type` on the request. */
+function type_filter_from_body(body) {
+    if (!body || typeof body !== 'object') return undefined;
+    return body['type?'] ?? body.type_filter ?? body.type;
+}
+
+/**
+ * Search referrals: optionally narrow by Bubble category (`type?` values), then rank by text `query`.
+ * When a type filter is present, every referral in that category is returned; text matching only affects
+ * ordering and scores (rows with no text hit stay at score 0). Without a type filter, only query matches appear.
+ */
 export function run_search(referrals, query, typeFilter = null) {
     const searchQuery = (query || '').toLowerCase().trim();
     const searchTerms = searchQuery.split(/\s+/).filter(Boolean);
@@ -121,15 +131,18 @@ export function run_search(referrals, query, typeFilter = null) {
 
             return { referral, score, matchFields };
         })
-        .filter(m => m.score > 0)
-        .sort((a, b) => b.score - a.score)
+        .filter(m => m.score > 0 || hasTypeFilter)
+        .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return (b.referral.agent_score || 0) - (a.referral.agent_score || 0);
+        })
         .map(m => ({
             id: m.referral.id,
             name: m.referral.name,
             score: m.score,
             matchFields: m.matchFields,
             desc: m.referral.desc,
-            type: m.referral.type,
+            'type?': m.referral.type,
             agent_score: m.referral.agent_score,
             pricing_details: m.referral.pricing_details,
         }));
@@ -201,8 +214,9 @@ export async function fetch_public_referrals(agent_id) {
 /** Handler: search over agent's private list (agent_id + query in body). */
 export const search_referrals = async (req, res) => {
     try {
-        const { agent_id, query, type_filter, type } = req.body || req;
-        const searchTypeFilter = type_filter ?? type;
+        const body = req.body || req;
+        const { agent_id, query } = body || {};
+        const searchTypeFilter = type_filter_from_body(body);
         const parsedTypeFilter = parse_type_filter(searchTypeFilter);
         if (!agent_id) {
             return res.status(400).json({ success: false, message: "Agent ID is required" });
@@ -225,7 +239,7 @@ export const search_referrals = async (req, res) => {
             success: true,
             query,
             agent_id,
-            type_filter: type_filter_response_shape(parsedTypeFilter.canonical),
+            'type?': type_filter_response_shape(parsedTypeFilter.canonical),
             total_matches: matches.length,
             results: matches,
             referral_ids: matches.map(m => m.id),
@@ -239,9 +253,9 @@ export const search_referrals = async (req, res) => {
 /** Handler: search over public list (query only). */
 export const guest_search = async (req, res) => {
     try {
-        // const { query } = req.body || req;
-        const { agent_id, query, type_filter, type } = req.body || req;
-        const searchTypeFilter = type_filter ?? type;
+        const body = req.body || req;
+        const { agent_id, query } = body || {};
+        const searchTypeFilter = type_filter_from_body(body);
         const parsedTypeFilter = parse_type_filter(searchTypeFilter);
         if (!query || !query.trim()) {
             return res.status(400).json({ success: false, message: "Search query is required" });
@@ -274,7 +288,7 @@ export const guest_search = async (req, res) => {
         return res.status(200).json({
             success: true,
             query,
-            type_filter: type_filter_response_shape(parsedTypeFilter.canonical),
+            'type?': type_filter_response_shape(parsedTypeFilter.canonical),
             total_matches: matches.length,
             results: matches,
             referral_ids: matches.map(m => m.id),
@@ -290,10 +304,9 @@ export const guest_search = async (req, res) => {
 ///** Handler: to search the branch & it's referrals */
 export const branch_search = async (req, res) => {
     try {
-        // const { query } = req.body || req; 
-        // thinking owner id can be optional but let's leave it in here just case 
-        const { branch_id,owner_id, query, type_filter, type } = req.body || req;
-        const searchTypeFilter = type_filter ?? type;
+        const body = req.body || req;
+        const { branch_id, owner_id, query } = body || {};
+        const searchTypeFilter = type_filter_from_body(body);
         const parsedTypeFilter = parse_type_filter(searchTypeFilter);
         if (!query || !query.trim()) {
             return res.status(400).json({ success: false, message: "Search query is required" });
@@ -326,7 +339,7 @@ export const branch_search = async (req, res) => {
         return res.status(200).json({
             success: true,
             query,
-            type_filter: type_filter_response_shape(parsedTypeFilter.canonical),
+            'type?': type_filter_response_shape(parsedTypeFilter.canonical),
             total_matches: matches.length,
             results: matches,
             referral_ids: matches.map(m => m.id),
