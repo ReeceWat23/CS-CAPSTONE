@@ -109,7 +109,7 @@ app.post('/api/guest-search', async (req, res) => {
 
 app.post('/api/branch-search', async (req, res) => {
   console.log('[server] POST /api/branch-search', req.body?.branch_id, req.body?.query);
-  await guest_search(req, res);
+  await branch_search(req, res);
 });
 
 // Messages
